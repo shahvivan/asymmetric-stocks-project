@@ -238,6 +238,8 @@ export default function PicksPage() {
         </div>
       )}
 
+      {/* Mobile bottom nav spacer */}
+      <div className="h-16 md:hidden" />
       <RevolutOrder stock={revolutStock} onClose={() => setRevolutStock(null)} />
     </div>
   );
@@ -318,14 +320,14 @@ function PickCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-border p-4 space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-            <div><span className="text-muted">Entry Zone</span><div className="font-mono text-white">{formatPrice(setup.entryZone[0])} – {formatPrice(setup.entryZone[1])}</div></div>
+        <div className="border-t border-border p-3 md:p-4 space-y-3 md:space-y-4">
+          <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs">
+            <div><span className="text-muted">Entry</span><div className="font-mono text-white text-[11px] md:text-xs">{formatPrice(setup.entryZone[0])}–{formatPrice(setup.entryZone[1])}</div></div>
             <div><span className="text-muted">Target</span><div className="font-mono text-profit">{formatPrice(setup.target)}</div></div>
-            <div><span className="text-muted">Stop Loss</span><div className="font-mono text-sell">{formatPrice(setup.stopLoss)}</div></div>
+            <div><span className="text-muted">Stop</span><div className="font-mono text-sell">{formatPrice(setup.stopLoss)}</div></div>
             <div><span className="text-muted">R:R</span><div className="font-mono text-white">{setup.riskReward.toFixed(1)}:1</div></div>
-            <div><span className="text-muted">Hold Window</span><div className="font-mono text-white">{setup.holdWindow[0]}–{setup.holdWindow[1]}d</div></div>
-            <div><span className="text-muted">Kelly Size</span><div className="font-mono text-buy">{formatPrice(setup.kellySize)} ({setup.kellyPercent}%)</div></div>
+            <div><span className="text-muted">Hold</span><div className="font-mono text-white">{setup.holdWindow[0]}–{setup.holdWindow[1]}d</div></div>
+            <div><span className="text-muted">Size</span><div className="font-mono text-buy">{setup.kellyPercent}%</div></div>
           </div>
 
           {aiAnalysis && (

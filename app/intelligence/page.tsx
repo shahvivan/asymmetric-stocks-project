@@ -341,6 +341,8 @@ OUTPUT FORMAT:
           </Link>
         </div>
       )}
+      {/* Mobile bottom nav spacer */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }

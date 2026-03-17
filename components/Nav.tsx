@@ -135,7 +135,7 @@ function MoreMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-full right-0 mb-2 bg-surface border border-border rounded-lg shadow-xl z-50 min-w-[140px]">
+          <div className="absolute bottom-full right-0 mb-2 bg-surface border border-border rounded-lg shadow-xl z-50 min-w-[150px]">
             {items.map((item) => (
               <Link
                 key={item.path}

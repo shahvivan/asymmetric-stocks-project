@@ -213,9 +213,11 @@ body {
   border-radius: var(--r-8);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
+  font-size: max(0.875rem, 16px); /* Prevents iOS zoom on focus */
   color: var(--t-max);
   outline: none;
   transition: border-color var(--tr-2), box-shadow var(--tr-2);
+  min-height: 44px; /* Touch target minimum */
 }
 .input-field:focus {
   border-color: var(--blue);
@@ -286,6 +288,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background: var(--c-base);
 }
@@ -1102,6 +1105,18 @@ body {
   .mobile-watchlist-item.active {
     border-color: var(--blue);
     background: var(--blue-bg);
+  }
+
+  /* Mobile bottom nav safe area spacer */
+  .mobile-bottom-spacer {
+    height: 70px;
+  }
+}
+
+/* Extra small screens (phones < 380px) */
+@media (max-width: 380px) {
+  .topbar {
+    padding: 0 var(--sp-2) !important;
   }
 }
 

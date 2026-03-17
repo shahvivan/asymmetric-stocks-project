@@ -71,7 +71,7 @@ export default function KellyPage() {
       </div>
 
       {/* Results Comparison */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <ResultCard
           title="Full Kelly"
           fraction={full.kellyFraction}
@@ -114,6 +114,8 @@ export default function KellyPage() {
           </div>
         </div>
       )}
+      {/* Mobile bottom nav spacer */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }

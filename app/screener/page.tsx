@@ -78,11 +78,11 @@ export default function ScreenerPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-2 md:gap-3 items-center">
         <select
           value={sectorFilter}
           onChange={(e) => setSectorFilter(e.target.value)}
-          className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-white"
+          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-white min-h-[44px] flex-1 md:flex-none"
         >
           <option value="All">All Sectors</option>
           {SECTORS.map((s) => (
@@ -97,7 +97,7 @@ export default function ScreenerPage() {
             max={100}
             value={minScore}
             onChange={(e) => setMinScore(Number(e.target.value))}
-            className="w-24 accent-buy"
+            className="w-20 md:w-24 accent-buy"
           />
           <span className="text-xs text-muted-2 w-8">{minScore}</span>
         </div>
@@ -107,24 +107,27 @@ export default function ScreenerPage() {
       {screenerData.length === 0 ? (
         <SkeletonTable rows={15} />
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="border border-border rounded-lg overflow-x-auto relative">
+          <table className="w-full text-sm min-w-[600px] md:min-w-0">
             <thead>
               <tr className="bg-surface-2 text-muted-2 text-xs font-semibold border-b border-border">
                 {([
                   ["ticker", "Ticker"],
                   ["price", "Price"],
-                  ["changePercent", "Change"],
+                  ["changePercent", "Chg%"],
                   ["asymmetryScore", "Score"],
                   ["rsi", "RSI"],
-                  ["pctFromHigh", "% from High"],
-                  ["volumeRatio", "Vol Ratio"],
-                  ["momentum", "Momentum"],
+                  ["pctFromHigh", "% High"],
+                  ["volumeRatio", "Vol"],
+                  ["momentum", "Mom"],
                 ] as [SortKey, string][]).map(([key, label]) => (
                   <th
                     key={key}
                     onClick={() => handleSort(key)}
-                    className="px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap"
+                    className={cn(
+                      "px-2 md:px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap",
+                      (key === "rsi" || key === "pctFromHigh" || key === "volumeRatio" || key === "momentum") && "hidden md:table-cell"
+                    )}
                   >
                     {label}
                     {sortKey === key && (
@@ -132,7 +135,7 @@ export default function ScreenerPage() {
                     )}
                   </th>
                 ))}
-                <th className="px-3 py-2 text-left">Signal</th>
+                <th className="px-2 md:px-3 py-2 text-left">Signal</th>
               </tr>
             </thead>
             <tbody>
@@ -145,25 +148,25 @@ export default function ScreenerPage() {
                     getScoreBgClass(stock.asymmetryScore)
                   )}
                 >
-                  <td className="px-3 py-2 font-mono font-bold text-white">{stock.ticker}</td>
-                  <td className="px-3 py-2 font-mono">{formatPrice(stock.price)}</td>
-                  <td className={cn("px-3 py-2 font-mono", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>
+                  <td className="px-2 md:px-3 py-2.5 md:py-2 font-mono font-bold text-white">{stock.ticker}</td>
+                  <td className="px-2 md:px-3 py-2.5 md:py-2 font-mono">{formatPrice(stock.price)}</td>
+                  <td className={cn("px-2 md:px-3 py-2.5 md:py-2 font-mono", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>
                     {formatPercent(stock.changePercent)}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-2 md:px-3 py-2.5 md:py-2">
                     <AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" />
                   </td>
-                  <td className="px-3 py-2 font-mono text-muted-2">
+                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">
                     {stock.rsi !== null ? stock.rsi.toFixed(1) : "..."}
                   </td>
-                  <td className="px-3 py-2 font-mono text-muted-2">{stock.pctFromHigh.toFixed(1)}%</td>
-                  <td className="px-3 py-2 font-mono text-muted-2">{stock.volumeRatio.toFixed(1)}x</td>
-                  <td className="px-3 py-2 font-mono text-muted-2">
+                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{stock.pctFromHigh.toFixed(1)}%</td>
+                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{stock.volumeRatio.toFixed(1)}x</td>
+                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">
                     {stock.momentum !== null ? stock.momentum.toFixed(2) : "..."}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-2 md:px-3 py-2.5 md:py-2">
                     <span className={cn(
-                      "text-xs font-bold px-2 py-0.5 rounded",
+                      "text-xs font-bold px-1.5 md:px-2 py-0.5 rounded",
                       stock.signal === "STRONG BUY" ? "text-profit bg-profit/20 border border-profit/30" :
                       stock.signal === "BUY" ? "text-buy bg-buy/20 border border-buy/30" :
                       "text-muted-2 bg-white/10"
@@ -180,6 +183,8 @@ export default function ScreenerPage() {
           )}
         </div>
       )}
+      {/* Mobile bottom nav spacer */}
+      <div className="h-16 md:hidden" />
       <StockDrawer stock={selectedEnrichedStock} onClose={() => setSelectedStock(null)} />
     </div>
   );
