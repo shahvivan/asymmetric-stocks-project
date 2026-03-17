@@ -140,45 +140,100 @@ export default function SettingsPage() {
       </Section>
 
       {/* AI Configuration */}
-      <Section title="AI Configuration (Groq)">
-        <p className="text-xs text-muted mb-3">
-          Powers daily portfolio intelligence with Llama 3.3 70B. Get a free API key from console.groq.com
-        </p>
-        <Field label="Groq API Key">
-          <input
-            type="password"
-            value={settings.groqApiKey}
-            onChange={(e) => updateSettings({ groqApiKey: e.target.value })}
-            placeholder="gsk_..."
-            className="input-field"
-          />
-        </Field>
-        {settings.groqApiKey && (
-          <div className="flex items-center gap-2 text-xs text-profit">
-            <span className="w-1.5 h-1.5 bg-profit rounded-full" />
-            AI Intelligence enabled — check the Intel tab
+      <Section title="AI Stock Analysis (Groq)">
+        {!settings.groqApiKey ? (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-2">
+              Get AI-powered stock analysis, trade plans, and market briefings. Powered by Llama 3.3 70B — completely free.
+            </p>
+            <div className="bg-surface-2 border border-border rounded-lg p-3 space-y-2.5">
+              <div className="text-xs font-bold text-buy mb-1">How to get your free Groq API key:</div>
+              <Step number={1} text="Go to" link="https://console.groq.com" linkText="console.groq.com" />
+              <Step number={2} text="Sign up with Google or email (free, no credit card)" />
+              <Step number={3} text='Click "API Keys" in the left sidebar' />
+              <Step number={4} text='Click "Create API Key" and give it any name' />
+              <Step number={5} text="Copy the key (starts with gsk_) and paste it below" />
+            </div>
+            <Field label="Groq API Key">
+              <input
+                type="password"
+                value={settings.groqApiKey}
+                onChange={(e) => updateSettings({ groqApiKey: e.target.value })}
+                placeholder="Paste your key here (gsk_...)"
+                className="input-field"
+              />
+            </Field>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs text-profit">
+              <span className="w-2 h-2 bg-profit rounded-full" />
+              <span className="font-bold">AI enabled</span> — ask questions about any stock in the AI chat panel
+            </div>
+            <Field label="Groq API Key">
+              <input
+                type="password"
+                value={settings.groqApiKey}
+                onChange={(e) => updateSettings({ groqApiKey: e.target.value })}
+                placeholder="gsk_..."
+                className="input-field"
+              />
+            </Field>
+            <p className="text-[10px] text-muted">
+              Manage your key at{" "}
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-buy hover:underline">
+                console.groq.com/keys
+              </a>
+            </p>
           </div>
         )}
       </Section>
 
       {/* Market Data (Finnhub) */}
-      <Section title="Market Data (Finnhub)">
-        <p className="text-xs text-muted mb-3">
-          Powers real-time prices, company news, and fundamentals. Free tier: 60 API calls/min + WebSocket.
-        </p>
-        <Field label="Finnhub API Key">
-          <input
-            type="password"
-            value={settings.finnhubApiKey}
-            onChange={(e) => updateSettings({ finnhubApiKey: e.target.value })}
-            placeholder="Your Finnhub API key"
-            className="input-field"
-          />
-        </Field>
-        {settings.finnhubApiKey && (
-          <div className="flex items-center gap-2 text-xs text-profit">
-            <span className="w-1.5 h-1.5 bg-profit rounded-full animate-pulse" />
-            Real-time data enabled
+      <Section title="Real-Time News (Finnhub)">
+        {!settings.finnhubApiKey ? (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-2">
+              Get real-time market news, company headlines, and fundamentals. Free tier gives you 60 API calls per minute.
+            </p>
+            <div className="bg-surface-2 border border-border rounded-lg p-3 space-y-2.5">
+              <div className="text-xs font-bold text-buy mb-1">How to get your free Finnhub API key:</div>
+              <Step number={1} text="Go to" link="https://finnhub.io/register" linkText="finnhub.io/register" />
+              <Step number={2} text="Sign up with email (free, no credit card)" />
+              <Step number={3} text="After signing up, your API key is shown on the dashboard" />
+              <Step number={4} text="Copy the key and paste it below" />
+            </div>
+            <Field label="Finnhub API Key">
+              <input
+                type="password"
+                value={settings.finnhubApiKey}
+                onChange={(e) => updateSettings({ finnhubApiKey: e.target.value })}
+                placeholder="Paste your key here"
+                className="input-field"
+              />
+            </Field>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-xs text-profit">
+              <span className="w-2 h-2 bg-profit rounded-full animate-pulse" />
+              <span className="font-bold">Real-time data enabled</span> — news and fundamentals are live
+            </div>
+            <Field label="Finnhub API Key">
+              <input
+                type="password"
+                value={settings.finnhubApiKey}
+                onChange={(e) => updateSettings({ finnhubApiKey: e.target.value })}
+                placeholder="Your Finnhub API key"
+                className="input-field"
+              />
+            </Field>
+            <p className="text-[10px] text-muted">
+              Manage your key at{" "}
+              <a href="https://finnhub.io/dashboard" target="_blank" rel="noopener noreferrer" className="text-buy hover:underline">
+                finnhub.io/dashboard
+              </a>
+            </p>
           </div>
         )}
       </Section>
@@ -211,6 +266,9 @@ export default function SettingsPage() {
           Reset All Data
         </button>
       </Section>
+
+      {/* Mobile bottom nav spacer */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }
@@ -221,6 +279,32 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (<div className="space-y-1"><label className="text-xs text-muted">{label}</label>{children}</div>);
+}
+
+function Step({ number, text, link, linkText }: { number: number; text: string; link?: string; linkText?: string }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-buy/20 text-buy text-[10px] font-bold flex items-center justify-center mt-0.5">
+        {number}
+      </span>
+      <span className="text-xs text-muted-2 leading-relaxed">
+        {text}
+        {link && (
+          <>
+            {" "}
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-buy font-bold hover:underline break-all"
+            >
+              {linkText || link}
+            </a>
+          </>
+        )}
+      </span>
+    </div>
+  );
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
