@@ -1,13 +1,13 @@
 # Asymmetric — Stock Intelligence Terminal
 
-[![CI](https://github.com/shahvivan/asymmetric-stocks-project/actions/workflows/ci.yml/badge.svg)](https://github.com/shahvivan/asymmetric-stocks-project/actions/workflows/ci.yml)
-[![Security Audit](https://github.com/shahvivan/asymmetric-stocks-project/actions/workflows/security.yml/badge.svg)](https://github.com/shahvivan/asymmetric-stocks-project/actions/workflows/security.yml)
 ![Next.js](https://img.shields.io/badge/Next.js_14-black?logo=next.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)
 ![Llama](https://img.shields.io/badge/Llama_3.3_70B-Groq-orange)
 
 > Screen 250+ stocks in seconds. Find the ones worth your money.
+
+**[Try it live → asymmetric-stocks.com](https://asymmetric-stocks.com)**
 
 ---
 
@@ -176,87 +176,6 @@ components/
            │   Screener • Picks • Intel      │
            │   Portfolio • Journal • Kelly    │
            └─────────────────────────────────┘
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-- Node.js 18+
-- npm (or yarn/pnpm/bun)
-- **Groq API key** (free) — for AI analysis → [Get one here](https://console.groq.com)
-- **Finnhub API key** (free) — for real-time news → [Get one here](https://finnhub.io)
-
-> **🔑 Both API keys are 100% free.** Groq gives you access to Llama 3.3 70B with a generous free tier. Finnhub gives you 60 API calls per minute at no cost. No credit card needed for either. You can add them in the app's Settings page or in your `.env.local` file.
-
-### Install & Run
-
-```bash
-# Clone
-git clone https://github.com/shahvivan/asymmetric-stocks-project.git
-cd asymmetric-stocks-project
-
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env.local
-# Edit .env.local with your API keys (see below)
-
-# Start development server
-npm run dev
-```
-
-Open **http://localhost:3000** — you're in.
-
-### API Keys
-
-The app works without any API keys — market data comes from Yahoo Finance (free, no key needed). But to unlock the full experience:
-
-| Key | What It Unlocks | Free? | Get It |
-|-----|----------------|-------|--------|
-| **Groq** | AI stock analysis, market briefing, trade plans | ✅ Generous free tier | [console.groq.com](https://console.groq.com) |
-| **Finnhub** | Real-time news headlines | ✅ 60 calls/min | [finnhub.io](https://finnhub.io) |
-
-Add your keys in the **Settings** page or in `.env.local`:
-
-```env
-FINNHUB_API_KEY=your_key_here
-NEXT_PUBLIC_FINNHUB_API_KEY=your_key_here
-GROQ_API_KEY=your_key_here
-NEXT_PUBLIC_GROQ_API_KEY=your_key_here
-```
-
----
-
-## CI/CD & Workflows
-
-This project uses GitHub Actions for continuous integration:
-
-| Workflow | Trigger | What It Does |
-|----------|---------|-------------|
-| **CI** | Every push & PR | Linting, TypeScript type checking, production build |
-| **Security Audit** | Every push + weekly Monday | Dependency vulnerability scan, secret detection in source |
-| **Deploy** | Push to main | Automated deployment to Vercel (requires secrets setup) |
-
----
-
-## Deployment
-
-### Vercel (Recommended)
-
-1. Push to GitHub
-2. Import project at [vercel.com/new](https://vercel.com/new)
-3. Add environment variables in Vercel dashboard
-4. Deploy — done
-
-### Self-Hosted
-
-```bash
-npm run build
-npm start
-# Runs on port 3000
 ```
 
 ---
