@@ -122,7 +122,7 @@ export default function PicksPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-5">
+    <div className="p-4 md:p-6 space-y-5 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -135,7 +135,7 @@ export default function PicksPage() {
           <button
             onClick={fetchBriefing}
             disabled={briefingLoading || screenerData.length === 0}
-            className="px-4 py-2 bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
+            className="px-4 py-2 min-h-[44px] md:min-h-0 bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
           >
             {briefingLoading ? "Analyzing..." : "Get AI Picks"}
           </button>
@@ -144,7 +144,7 @@ export default function PicksPage() {
 
       {/* AI Best New Buy (hero card) */}
       {briefing?.topNewBuy && (
-        <div className="bg-gradient-to-r from-buy/10 to-profit/10 border border-buy/30 rounded-xl p-5">
+        <div className="bg-gradient-to-r from-buy/10 to-profit/10 border border-buy/30 rounded-xl p-3 md:p-5">
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-bold text-buy bg-buy/20 px-2 py-0.5 rounded">AI TOP PICK</span>
             <span className="text-xs text-muted">
@@ -154,7 +154,7 @@ export default function PicksPage() {
           <div className="flex items-center gap-3 mb-3">
             <span className="font-mono font-bold text-white text-2xl">{briefing.topNewBuy.ticker}</span>
             <span className={cn(
-              "text-xs font-bold px-2 py-0.5 rounded",
+              "text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center",
               "text-profit bg-profit/20 border border-profit/30"
             )}>BUY</span>
           </div>
@@ -239,7 +239,7 @@ export default function PicksPage() {
       )}
 
       {/* Mobile bottom nav spacer */}
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
       <RevolutOrder stock={revolutStock} onClose={() => setRevolutStock(null)} />
     </div>
   );
@@ -255,15 +255,15 @@ function ActionCard({ action }: { action: AIAction }) {
   }[action.type] || { color: "text-muted-2", bg: "bg-white/10", border: "border-border" };
 
   return (
-    <div className={cn("border rounded-lg p-4", config.bg, config.border)}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className={cn("text-xs font-bold px-2 py-0.5 rounded", config.color, config.bg)}>
+    <div className={cn("border rounded-lg p-3 md:p-4", config.bg, config.border)}>
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={cn("text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center", config.color, config.bg)}>
             {action.type.replace("_", " ")}
           </span>
           <span className="font-mono font-bold text-white">{action.ticker}</span>
           <span className={cn(
-            "text-[10px] px-1.5 py-0.5 rounded",
+            "text-[10px] px-1.5 py-1 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center",
             action.confidence === "HIGH" ? "text-profit bg-profit/10" :
             action.confidence === "MEDIUM" ? "text-monitor bg-monitor/10" :
             "text-muted bg-white/5"
@@ -302,32 +302,32 @@ function PickCard({
 
   return (
     <div className="bg-surface border border-border rounded-lg overflow-hidden">
-      <div onClick={onToggle} className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/10 transition-colors">
-        <div className="flex items-center gap-3">
-          <span className={cn("text-xs font-bold px-2 py-0.5 rounded", stock.signal === "STRONG BUY" ? "text-profit bg-profit/20 border border-profit/30" : "text-buy bg-buy/20 border border-buy/30")}>
+      <div onClick={onToggle} className="flex items-center justify-between p-3 md:p-4 cursor-pointer hover:bg-white/10 transition-colors">
+        <div className="flex items-center gap-2 md:gap-3 min-w-0">
+          <span className={cn("text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center shrink-0", stock.signal === "STRONG BUY" ? "text-profit bg-profit/20 border border-profit/30" : "text-buy bg-buy/20 border border-buy/30")}>
             {stock.signal}
           </span>
-          <span className="font-mono font-bold text-white">{stock.ticker}</span>
+          <span className="font-mono font-bold text-white truncate">{stock.ticker}</span>
           <span className="text-sm text-muted hidden md:inline">{stock.name}</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           <span className="font-mono text-sm">{formatPrice(stock.price)}</span>
           <span className={cn("font-mono text-sm", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>{formatPercent(stock.changePercent)}</span>
           <div className="w-20 hidden md:block"><AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" /></div>
-          <span className="text-xs text-muted">{setup.riskReward.toFixed(1)}:1</span>
+          <span className="text-xs text-muted hidden md:inline">{setup.riskReward.toFixed(1)}:1</span>
           <span className="text-muted">{expanded ? "\u25B2" : "\u25BC"}</span>
         </div>
       </div>
 
       {expanded && (
         <div className="border-t border-border p-3 md:p-4 space-y-3 md:space-y-4">
-          <div className="grid grid-cols-3 gap-2 md:gap-3 text-xs">
-            <div><span className="text-muted">Entry</span><div className="font-mono text-white text-[11px] md:text-xs">{formatPrice(setup.entryZone[0])}–{formatPrice(setup.entryZone[1])}</div></div>
-            <div><span className="text-muted">Target</span><div className="font-mono text-profit">{formatPrice(setup.target)}</div></div>
-            <div><span className="text-muted">Stop</span><div className="font-mono text-sell">{formatPrice(setup.stopLoss)}</div></div>
-            <div><span className="text-muted">R:R</span><div className="font-mono text-white">{setup.riskReward.toFixed(1)}:1</div></div>
-            <div><span className="text-muted">Hold</span><div className="font-mono text-white">{setup.holdWindow[0]}–{setup.holdWindow[1]}d</div></div>
-            <div><span className="text-muted">Size</span><div className="font-mono text-buy">{setup.kellyPercent}%</div></div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 text-xs">
+            <div><span className="text-muted">Entry</span><div className="font-mono text-white text-sm font-bold md:text-xs md:font-normal">{formatPrice(setup.entryZone[0])}–{formatPrice(setup.entryZone[1])}</div></div>
+            <div><span className="text-muted">Target</span><div className="font-mono text-profit text-sm font-bold md:text-xs md:font-normal">{formatPrice(setup.target)}</div></div>
+            <div><span className="text-muted">Stop</span><div className="font-mono text-sell text-sm font-bold md:text-xs md:font-normal">{formatPrice(setup.stopLoss)}</div></div>
+            <div><span className="text-muted">R:R</span><div className="font-mono text-white text-sm font-bold md:text-xs md:font-normal">{setup.riskReward.toFixed(1)}:1</div></div>
+            <div><span className="text-muted">Hold</span><div className="font-mono text-white text-sm font-bold md:text-xs md:font-normal">{setup.holdWindow[0]}–{setup.holdWindow[1]}d</div></div>
+            <div><span className="text-muted">Size</span><div className="font-mono text-buy text-sm font-bold md:text-xs md:font-normal">{setup.kellyPercent}%</div></div>
           </div>
 
           {aiAnalysis && (
@@ -353,11 +353,11 @@ function PickCard({
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={onRevolut} className="px-3 py-1.5 bg-buy/10 text-buy border border-buy/20 rounded-lg text-xs font-bold hover:bg-buy/20 transition-colors">Revolut Order</button>
-            <button onClick={onWatchlist} className="px-3 py-1.5 bg-white/5 text-muted-2 border border-border rounded-lg text-xs hover:bg-white/10 transition-colors">+ Watchlist</button>
+            <button onClick={onRevolut} className="px-3 py-2.5 md:py-1.5 min-h-[44px] md:min-h-0 bg-buy/10 text-buy border border-buy/20 rounded-lg text-xs font-bold hover:bg-buy/20 transition-colors">Revolut Order</button>
+            <button onClick={onWatchlist} className="px-3 py-2.5 md:py-1.5 min-h-[44px] md:min-h-0 bg-white/5 text-muted-2 border border-border rounded-lg text-xs hover:bg-white/10 transition-colors">+ Watchlist</button>
             <div className="flex gap-1 ml-auto">
-              <button onClick={() => onFeedback(true)} className="px-2 py-1 text-xs text-muted hover:text-profit transition-colors">Good pick</button>
-              <button onClick={() => onFeedback(false)} className="px-2 py-1 text-xs text-muted hover:text-sell transition-colors">Bad pick</button>
+              <button onClick={() => onFeedback(true)} className="px-2 py-2 md:py-1 min-h-[44px] md:min-h-0 text-xs text-muted hover:text-profit transition-colors">Good pick</button>
+              <button onClick={() => onFeedback(false)} className="px-2 py-2 md:py-1 min-h-[44px] md:min-h-0 text-xs text-muted hover:text-sell transition-colors">Bad pick</button>
             </div>
           </div>
         </div>

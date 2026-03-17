@@ -135,7 +135,10 @@ lib/
 components/
 ├── RightPanel.tsx      → AI chat with rich context & markdown rendering
 ├── StockDrawer.tsx     → Detailed stock view with TradingView chart
-└── Sidebar.tsx         → Navigation
+├── Nav.tsx             → Desktop sidebar + mobile bottom tab navigation
+├── SubpageTopbar.tsx   → Desktop top navigation bar for sub-pages
+├── LegacyLayout.tsx    → Layout wrapper for non-dashboard pages
+└── TradingViewChart.tsx → TradingView widget with mobile/desktop modes
 ```
 
 ### How the Scoring Pipeline Works
@@ -264,7 +267,7 @@ npm start
 - [ ] **Custom screener filters** — build your own screening criteria
 - [ ] **Multi-timeframe analysis** — daily, weekly, monthly trend alignment
 - [ ] **Options flow integration** — unusual options activity as a scoring factor
-- [ ] **Mobile-optimized PWA** — full trading terminal on your phone
+- [x] **Mobile-optimized UI** — fully responsive design with touch-friendly controls, area charts, and compact layouts
 - [ ] **Alert system** — push notifications when a stock hits your score threshold
 - [ ] **Social sentiment** — Reddit/Twitter mention tracking as a momentum signal
 

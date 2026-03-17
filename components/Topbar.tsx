@@ -183,7 +183,7 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
         <input
           ref={inputRef}
           type="text"
-          className="search-input"
+          className="search-input min-h-[36px] md:min-h-0"
           placeholder="Search stocks... (e.g. AAPL)"
           value={query}
           onChange={(e) => {
@@ -215,7 +215,7 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
       </div>
 
       {/* Nav Links */}
-      <div className="topbar-nav">
+      <div className="topbar-nav hidden md:flex">
         {NAV_LINKS.map((link) => (
           <Link
             key={link.path}
@@ -263,12 +263,12 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
           >
             <path d="M21 2v6h-6M3 12a9 9 0 0115.5-6.36L21 8M3 22v-6h6M21 12a9 9 0 01-15.5 6.36L3 16" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {isRefreshing ? "Refreshing..." : "Refresh"}
+          <span className="hidden md:inline">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
         </button>
       )}
 
       {/* Market Indices */}
-      <div className="topbar-indices">
+      <div className="topbar-indices hidden md:flex">
         {indices && indices.length > 0 ? (
           indices.map((idx) => (
             <div key={idx.label} className="index-item">
@@ -294,7 +294,7 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
       </div>
 
       {/* Market Status */}
-      <div className="market-status">
+      <div className="market-status hidden md:flex">
         <span className={`market-dot ${marketOpen ? "open" : "closed"}`} />
         <span style={{ color: marketOpen ? "var(--green)" : "var(--red)" }}>
           {marketOpen ? "OPEN" : "CLOSED"}

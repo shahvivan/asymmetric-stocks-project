@@ -115,7 +115,7 @@ export default function KellyPage() {
         </div>
       )}
       {/* Mobile bottom nav spacer */}
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
     </div>
   );
 }
@@ -136,7 +136,7 @@ function Slider({ label, value, onChange, min, max, unit, step = 1 }: {
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-buy"
+        className="w-full accent-buy min-h-[44px] md:min-h-0"
       />
     </div>
   );

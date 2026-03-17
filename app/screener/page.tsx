@@ -58,12 +58,12 @@ export default function ScreenerPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-3 md:p-6 space-y-3 md:space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-2 md:gap-3">
         <div>
-          <h1 className="text-xl font-bold">Asymmetric Screener</h1>
-          <p className="text-xs text-muted mt-0.5">
+          <h1 className="text-lg md:text-xl font-bold">Asymmetric Screener</h1>
+          <p className="text-[11px] md:text-xs text-muted mt-0.5">
             {screenerData.length} stocks |
             {enriching ? " Calculating full scores..." : " Scores complete"}
           </p>
@@ -71,25 +71,25 @@ export default function ScreenerPage() {
         <button
           onClick={() => mutate()}
           disabled={isLoading}
-          className="px-4 py-2 bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
+          className="px-3 md:px-4 py-2 min-h-[44px] bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
         >
           {isLoading ? "Refreshing..." : "Refresh Now"}
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 md:gap-3 items-center">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-2 md:gap-3 sm:items-center">
         <select
           value={sectorFilter}
           onChange={(e) => setSectorFilter(e.target.value)}
-          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm text-white min-h-[44px] flex-1 md:flex-none"
+          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm md:text-base text-white min-h-[44px] w-full sm:w-auto sm:flex-none"
         >
           <option value="All">All Sectors</option>
           {SECTORS.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-h-[44px]">
           <label className="text-xs text-muted">Min Score:</label>
           <input
             type="range"
@@ -97,7 +97,7 @@ export default function ScreenerPage() {
             max={100}
             value={minScore}
             onChange={(e) => setMinScore(Number(e.target.value))}
-            className="w-20 md:w-24 accent-buy"
+            className="w-24 md:w-24 accent-buy min-h-[44px]"
           />
           <span className="text-xs text-muted-2 w-8">{minScore}</span>
         </div>
@@ -107,8 +107,8 @@ export default function ScreenerPage() {
       {screenerData.length === 0 ? (
         <SkeletonTable rows={15} />
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto relative">
-          <table className="w-full text-sm min-w-[600px] md:min-w-0">
+        <div className="border border-border rounded-lg overflow-x-auto relative -webkit-overflow-scrolling-touch" style={{ WebkitOverflowScrolling: "touch" }}>
+          <table className="w-full text-xs md:text-sm md:min-w-0">
             <thead>
               <tr className="bg-surface-2 text-muted-2 text-xs font-semibold border-b border-border">
                 {([
@@ -125,7 +125,7 @@ export default function ScreenerPage() {
                     key={key}
                     onClick={() => handleSort(key)}
                     className={cn(
-                      "px-2 md:px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap",
+                      "px-2 md:px-3 py-2.5 md:py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap min-h-[44px]",
                       (key === "rsi" || key === "pctFromHigh" || key === "volumeRatio" || key === "momentum") && "hidden md:table-cell"
                     )}
                   >
@@ -148,7 +148,7 @@ export default function ScreenerPage() {
                     getScoreBgClass(stock.asymmetryScore)
                   )}
                 >
-                  <td className="px-2 md:px-3 py-2.5 md:py-2 font-mono font-bold text-white">{stock.ticker}</td>
+                  <td className="px-2 md:px-3 py-3 md:py-2 font-mono font-bold text-white text-sm md:text-base">{stock.ticker}</td>
                   <td className="px-2 md:px-3 py-2.5 md:py-2 font-mono">{formatPrice(stock.price)}</td>
                   <td className={cn("px-2 md:px-3 py-2.5 md:py-2 font-mono", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>
                     {formatPercent(stock.changePercent)}
@@ -184,7 +184,7 @@ export default function ScreenerPage() {
         </div>
       )}
       {/* Mobile bottom nav spacer */}
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
       <StockDrawer stock={selectedEnrichedStock} onClose={() => setSelectedStock(null)} />
     </div>
   );

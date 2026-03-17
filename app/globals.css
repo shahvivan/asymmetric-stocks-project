@@ -280,6 +280,20 @@ body {
   .text-balance { text-wrap: balance; }
 }
 
+/* Body — desktop: locked viewport, mobile: natural scroll */
+body {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+@media (max-width: 768px) {
+  body {
+    height: auto;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* ============================================
    APP SHELL — TradingView Terminal Layout
    ============================================ */
@@ -1018,111 +1032,267 @@ body {
 
 /* ── Mobile Responsive ── */
 @media (max-width: 768px) {
-  .topbar {
-    height: 44px;
-    padding: 0 var(--sp-3);
-    gap: var(--sp-2);
+  /* App shell — full page scroll on mobile (no trapped scroll) */
+  .app-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .app-body {
+    flex-direction: column;
+    overflow: visible;
+  }
+  .main-area {
+    overflow: visible;
+    flex: none;
   }
 
+  /* Topbar — Robinhood minimal, sticky */
+  .topbar {
+    height: 48px;
+    padding: 0 var(--sp-4);
+    gap: var(--sp-3);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
   .topbar-logo span { display: none; }
   .topbar-indices { display: none; }
+  .topbar-nav { display: none; }
+  .market-status { display: none; }
   .search-wrap { flex: 1; }
+  .search-input { height: 36px; border-radius: 10px; font-size: var(--fs-13); }
 
+  /* Panels */
   .left-panel { display: none; }
   .right-panel { display: none; }
 
+  /* Right panel mobile override — critical fix */
+  .right-panel.mobile-right-panel {
+    display: flex;
+    width: 100%;
+    border-left: none;
+    background: transparent;
+  }
+
+  /* Main content — Revolut spacing */
   .main-inner {
-    padding: var(--sp-3);
+    padding: var(--sp-4);
+    gap: var(--sp-3);
   }
 
+  /* Stock header — Robinhood hero price */
   .stock-price {
-    font-size: var(--fs-28);
+    font-size: var(--fs-32);
+  }
+  .stock-company {
+    font-size: var(--fs-14);
+  }
+  .stock-header {
+    gap: var(--sp-2);
   }
 
+  /* Chart — right-sized for mobile, scroll-through */
   .chart-container {
-    min-height: 350px;
+    min-height: 180px;
+    max-height: 240px;
+    border-radius: var(--r-12);
+    overflow: hidden;
+    position: relative;
+  }
+  .chart-container iframe {
+    pointer-events: none;
   }
 
-  .fundamentals-bar {
+  /* Timeframe tabs — Revolut/Robinhood pill style */
+  .tf-tabs {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    border-radius: var(--r-pill);
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2);
+    width: 100%;
+    scrollbar-width: none;
+  }
+  .tf-tabs::-webkit-scrollbar { display: none; }
+  .tf-tab {
+    border-radius: var(--r-pill);
+    padding: var(--sp-2) var(--sp-4);
+    min-height: 36px;
+    font-size: var(--fs-12);
   }
 
-  /* Mobile tab bar for panel switching */
+  /* Fundamentals — 2-col grid (Robinhood + Revolut) */
+  .fundamentals-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--sp-2);
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .fund-item {
+    padding: var(--sp-3);
+    background: var(--c-surface);
+    border-radius: var(--r-12);
+    border: 1px solid var(--b-faint);
+    text-align: left;
+    min-width: 0;
+  }
+  .fund-item + .fund-item {
+    border-left: none;
+  }
+  .fund-label {
+    font-size: var(--fs-10);
+  }
+  .fund-value {
+    font-size: var(--fs-14);
+  }
+  /* Show only first 4 fundamentals on mobile */
+  .fund-item:nth-child(n+5) {
+    display: none;
+  }
+
+  /* Mobile panel tabs — TradingView/Yahoo segmented control */
   .mobile-panel-tabs {
     display: flex;
-    gap: var(--sp-1);
-    padding: var(--sp-2);
+    gap: 0;
+    padding: 0;
     background: var(--c-surface);
     border: 1px solid var(--b-faint);
-    border-radius: var(--r-8);
-    overflow-x: auto;
+    border-radius: var(--r-12);
+    overflow: hidden;
   }
 
   .mobile-panel-tab {
-    padding: var(--sp-2) var(--sp-3);
-    border-radius: var(--r-6);
-    font-size: var(--fs-11);
+    flex: 1;
+    padding: var(--sp-3) var(--sp-2);
+    border-radius: 0;
+    font-size: var(--fs-13);
     font-weight: 600;
     color: var(--t-low);
     white-space: nowrap;
     border: none;
     background: transparent;
     cursor: pointer;
-    min-width: 44px;
     min-height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all var(--tr-2);
+    border-bottom: 2px solid transparent;
   }
 
   .mobile-panel-tab.active {
-    background: var(--blue);
-    color: #fff;
+    background: var(--blue-bg);
+    color: var(--t-max);
+    border-bottom-color: var(--blue);
   }
 
-  /* Mobile watchlist strip */
+  /* Mobile watchlist chips — Revolut carousel */
   .mobile-watchlist {
     display: flex;
     gap: var(--sp-2);
     overflow-x: auto;
-    padding: var(--sp-2) 0;
+    padding: var(--sp-2) var(--sp-4);
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
+  .mobile-watchlist::-webkit-scrollbar { display: none; }
 
-  .mobile-watchlist-item {
+  .mobile-watchlist-chip {
     flex-shrink: 0;
-    padding: var(--sp-2) var(--sp-3);
-    background: var(--c-surface);
+    padding: var(--sp-2) var(--sp-4);
+    background: var(--c-raised);
     border: 1px solid var(--b-faint);
-    border-radius: var(--r-6);
+    border-radius: var(--r-pill);
     cursor: pointer;
-    min-width: 80px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
     transition: all var(--tr-1);
+    min-height: 36px;
   }
 
-  .mobile-watchlist-item.active {
-    border-color: var(--blue);
+  .mobile-watchlist-chip.active {
+    border-color: var(--blue-border);
     background: var(--blue-bg);
   }
 
-  /* Mobile bottom nav safe area spacer */
+  .mobile-watchlist-chip .chip-ticker {
+    font-size: var(--fs-12);
+    font-weight: 700;
+    color: var(--t-max);
+  }
+  .mobile-watchlist-chip.active .chip-ticker {
+    color: var(--blue);
+  }
+
+  .mobile-watchlist-chip .chip-change {
+    font-size: var(--fs-10);
+    font-weight: 600;
+  }
+
+  /* News cards — Yahoo Finance style */
+  .mobile-news-card {
+    display: flex;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    background: var(--c-surface);
+    border: 1px solid var(--b-faint);
+    border-radius: var(--r-12);
+    transition: background var(--tr-1);
+  }
+  .mobile-news-card:active {
+    background: var(--c-hover);
+  }
+
+  /* AI section in mobile tabs */
+  .ai-input {
+    height: 44px;
+    font-size: max(var(--fs-14), 16px);
+    border-radius: var(--r-8);
+  }
+  .ai-send-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--r-8);
+  }
+  .ai-quick-btn {
+    padding: var(--sp-2) var(--sp-3);
+    font-size: var(--fs-11);
+    min-height: 36px;
+  }
+
+  /* Cards — modern border radius */
+  .card-hover {
+    border-radius: var(--r-12);
+  }
+
+  /* Bottom nav spacer */
   .mobile-bottom-spacer {
-    height: 70px;
+    height: 80px;
   }
 }
 
 /* Extra small screens (phones < 380px) */
 @media (max-width: 380px) {
   .topbar {
-    padding: 0 var(--sp-2) !important;
+    padding: 0 var(--sp-3) !important;
+  }
+  .main-inner {
+    padding: var(--sp-3) !important;
+  }
+  .mobile-watchlist {
+    padding-left: var(--sp-3);
+    padding-right: var(--sp-3);
   }
 }
 
 @media (min-width: 769px) {
   .mobile-panel-tabs { display: none; }
   .mobile-watchlist { display: none; }
+  .mobile-right-panel { display: none !important; }
 }
 
 /* ── Number Roll Animation ── */

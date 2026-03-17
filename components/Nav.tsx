@@ -17,8 +17,10 @@ const NAV_ITEMS = [
   { path: "/settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z" },
 ];
 
-// Mobile: show first 5 + more button
-const MOBILE_PRIMARY = 6;
+// Mobile: cherry-pick primary tabs (Dashboard, Screener, Picks, Intel)
+const MOBILE_NAV = [NAV_ITEMS[0], NAV_ITEMS[1], NAV_ITEMS[2], NAV_ITEMS[4]];
+// Mobile: everything else in More menu (Portfolio, Journal, Kelly, Watch, Settings)
+const MOBILE_MORE = [NAV_ITEMS[3], NAV_ITEMS[5], NAV_ITEMS[6], NAV_ITEMS[7], NAV_ITEMS[8]];
 
 export default function Nav() {
   const pathname = usePathname();
@@ -74,21 +76,21 @@ export default function Nav() {
       </nav>
 
       {/* Mobile Bottom Tabs */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-border z-50 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface to-surface/95 border-t border-white/[0.06] z-50 pb-safe">
         <div className="flex justify-around">
-          {NAV_ITEMS.slice(0, MOBILE_PRIMARY).map((item) => {
+          {MOBILE_NAV.map((item) => {
             const active = pathname === item.path;
             return (
               <Link
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "flex flex-col items-center py-2 px-3 text-[10px] transition-colors",
+                  "flex flex-col items-center py-2.5 px-3 text-[10px] font-medium transition-colors",
                   active ? "text-buy" : "text-muted"
                 )}
               >
                 <svg
-                  className="w-5 h-5 mb-0.5"
+                  className="w-[22px] h-[22px] mb-0.5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -101,7 +103,7 @@ export default function Nav() {
             );
           })}
           {/* More menu */}
-          <MoreMenu items={NAV_ITEMS.slice(MOBILE_PRIMARY)} pathname={pathname} />
+          <MoreMenu items={MOBILE_MORE} pathname={pathname} />
         </div>
       </nav>
     </>
@@ -123,11 +125,11 @@ function MoreMenu({
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          "flex flex-col items-center py-2 px-3 text-[10px] transition-colors",
+          "flex flex-col items-center py-2.5 px-3 text-[10px] font-medium transition-colors",
           active || open ? "text-buy" : "text-muted"
         )}
       >
-        <svg className="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+        <svg className="w-[22px] h-[22px] mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
         </svg>
         More

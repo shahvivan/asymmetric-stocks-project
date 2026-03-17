@@ -98,6 +98,9 @@ export default function PortfolioPage() {
         />
       )}
 
+      {/* Mobile bottom nav spacer */}
+      <div className="h-20 md:hidden" />
+
       {/* Exit Modal */}
       {exitModal && (
         <ExitTradeModal

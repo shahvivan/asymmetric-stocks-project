@@ -181,6 +181,8 @@ export default function WatchlistPage() {
           ))}
         </div>
       )}
+      {/* Mobile bottom nav spacer */}
+      <div className="h-20 md:hidden" />
     </div>
   );
 }

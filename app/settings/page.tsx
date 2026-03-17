@@ -56,28 +56,28 @@ export default function SettingsPage() {
         <p className="text-xs text-muted mb-3">
           Your portfolio starts at $0. Add deposits as you fund your trading account. Your portfolio value updates automatically as you log trades.
         </p>
-        <div className="flex items-center gap-2 text-sm mb-3">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm mb-3">
           <span className="text-muted">Total deposited:</span>
           <span className="font-mono font-bold text-white">{formatPrice(portfolioValue.totalDeposited)}</span>
-          <span className="text-muted">|</span>
+          <span className="text-muted hidden md:inline">|</span>
           <span className="text-muted">Portfolio value:</span>
           <span className="font-mono font-bold text-profit">{formatPrice(portfolioValue.totalValue)}</span>
         </div>
-        <div className="flex gap-2 mb-3">
+        <div className="flex flex-col md:flex-row gap-2 mb-3">
           <input
             type="number"
             value={depositAmount}
             onChange={(e) => setDepositAmount(e.target.value)}
             placeholder="Amount (e.g. 500)"
             step="0.01"
-            className="input-field flex-1"
+            className="input-field w-full md:flex-1"
           />
           <input
             type="text"
             value={depositNote}
             onChange={(e) => setDepositNote(e.target.value)}
             placeholder="Note (optional)"
-            className="input-field flex-1"
+            className="input-field w-full md:flex-1"
           />
           <button onClick={handleAddDeposit} className="px-4 py-2 bg-buy/10 text-buy border border-buy/20 rounded-lg text-sm hover:bg-buy/20 transition-colors">
             Add
@@ -160,7 +160,7 @@ export default function SettingsPage() {
                 value={settings.groqApiKey}
                 onChange={(e) => updateSettings({ groqApiKey: e.target.value })}
                 placeholder="Paste your key here (gsk_...)"
-                className="input-field"
+                className="input-field w-full"
               />
             </Field>
           </div>
@@ -176,7 +176,7 @@ export default function SettingsPage() {
                 value={settings.groqApiKey}
                 onChange={(e) => updateSettings({ groqApiKey: e.target.value })}
                 placeholder="gsk_..."
-                className="input-field"
+                className="input-field w-full"
               />
             </Field>
             <p className="text-[10px] text-muted">
@@ -209,7 +209,7 @@ export default function SettingsPage() {
                 value={settings.finnhubApiKey}
                 onChange={(e) => updateSettings({ finnhubApiKey: e.target.value })}
                 placeholder="Paste your key here"
-                className="input-field"
+                className="input-field w-full"
               />
             </Field>
           </div>
@@ -225,7 +225,7 @@ export default function SettingsPage() {
                 value={settings.finnhubApiKey}
                 onChange={(e) => updateSettings({ finnhubApiKey: e.target.value })}
                 placeholder="Your Finnhub API key"
-                className="input-field"
+                className="input-field w-full"
               />
             </Field>
             <p className="text-[10px] text-muted">
@@ -251,10 +251,10 @@ export default function SettingsPage() {
       {/* EmailJS */}
       <Section title="EmailJS Configuration">
         <p className="text-xs text-muted mb-3">Free 200 emails/month. Get keys from emailjs.com</p>
-        <Field label="Email Address"><input type="email" value={settings.emailAddress} onChange={(e) => updateSettings({ emailAddress: e.target.value })} placeholder="your@email.com" className="input-field" /></Field>
-        <Field label="Service ID"><input type="text" value={settings.emailjsServiceId} onChange={(e) => updateSettings({ emailjsServiceId: e.target.value })} placeholder="service_xxxxx" className="input-field" /></Field>
-        <Field label="Template ID"><input type="text" value={settings.emailjsTemplateId} onChange={(e) => updateSettings({ emailjsTemplateId: e.target.value })} placeholder="template_xxxxx" className="input-field" /></Field>
-        <Field label="Public Key"><input type="text" value={settings.emailjsPublicKey} onChange={(e) => updateSettings({ emailjsPublicKey: e.target.value })} placeholder="your_public_key" className="input-field" /></Field>
+        <Field label="Email Address"><input type="email" value={settings.emailAddress} onChange={(e) => updateSettings({ emailAddress: e.target.value })} placeholder="your@email.com" className="input-field w-full" /></Field>
+        <Field label="Service ID"><input type="text" value={settings.emailjsServiceId} onChange={(e) => updateSettings({ emailjsServiceId: e.target.value })} placeholder="service_xxxxx" className="input-field w-full" /></Field>
+        <Field label="Template ID"><input type="text" value={settings.emailjsTemplateId} onChange={(e) => updateSettings({ emailjsTemplateId: e.target.value })} placeholder="template_xxxxx" className="input-field w-full" /></Field>
+        <Field label="Public Key"><input type="text" value={settings.emailjsPublicKey} onChange={(e) => updateSettings({ emailjsPublicKey: e.target.value })} placeholder="your_public_key" className="input-field w-full" /></Field>
         <button onClick={handleTestEmail} disabled={testingEmail} className="px-4 py-2 bg-buy/10 text-buy border border-buy/20 rounded-lg text-sm hover:bg-buy/20 transition-colors disabled:opacity-50">
           {testingEmail ? "Sending..." : "Send Test Email"}
         </button>
@@ -268,7 +268,7 @@ export default function SettingsPage() {
       </Section>
 
       {/* Mobile bottom nav spacer */}
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
     </div>
   );
 }

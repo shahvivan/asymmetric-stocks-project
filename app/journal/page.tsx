@@ -140,40 +140,62 @@ export default function JournalPage() {
             </div>
           )}
 
-          {/* Trade History Table */}
-          <div className="border border-border rounded-lg overflow-x-auto">
+          {/* Trade History — Mobile Cards */}
+          <div className="md:hidden space-y-2">
+            {sorted.map((t) => (
+              <div key={t.id} className="bg-surface border border-border rounded-lg p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-white">{t.ticker}</span>
+                  <span className="text-xs text-muted-2">{formatDate(t.exitDate)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={cn("font-mono text-sm font-bold", t.won ? "text-profit" : "text-sell")}>
+                    {t.won ? "+" : ""}{formatPrice(t.realizedPnl)}
+                  </span>
+                  <span className={cn("font-mono text-sm", t.won ? "text-profit" : "text-sell")}>
+                    {formatPercent(t.realizedPnlPercent)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] text-muted-2">
+                  <span>{t.daysHeld}d held</span>
+                  <span>Entry {formatPrice(t.buyPrice)}</span>
+                  <span>Exit {formatPrice(t.exitPrice)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Trade History — Desktop Table */}
+          <div className="hidden md:block border border-border rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-surface-2 text-muted text-xs">
                   {([["ticker", "Ticker"], ["exitDate", "Date"], ["realizedPnl", "P&L $"], ["realizedPnlPercent", "P&L %"], ["daysHeld", "Days"]] as [SortKey, string][]).map(([key, label]) => (
-                    <th key={key} onClick={() => handleSort(key)} className={cn(
-                      "px-2 md:px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap",
-                      key === "daysHeld" && "hidden md:table-cell"
-                    )}>
+                    <th key={key} onClick={() => handleSort(key)} className="px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap">
                       {label} {sortKey === key && (sortDir === "asc" ? "▲" : "▼")}
                     </th>
                   ))}
-                  <th className="px-2 md:px-3 py-2 text-left hidden md:table-cell">Entry</th>
-                  <th className="px-2 md:px-3 py-2 text-left hidden md:table-cell">Exit</th>
+                  <th className="px-3 py-2 text-left">Entry</th>
+                  <th className="px-3 py-2 text-left">Exit</th>
                 </tr>
               </thead>
               <tbody>
                 {sorted.map((t) => (
                   <tr key={t.id} className="border-t border-border hover:bg-white/5">
-                    <td className="px-2 md:px-3 py-2.5 md:py-2 font-mono font-bold">{t.ticker}</td>
-                    <td className="px-2 md:px-3 py-2.5 md:py-2 text-muted-2">{formatDate(t.exitDate)}</td>
-                    <td className={cn("px-2 md:px-3 py-2.5 md:py-2 font-mono", t.won ? "text-profit" : "text-sell")}>{t.won ? "+" : ""}{formatPrice(t.realizedPnl)}</td>
-                    <td className={cn("px-2 md:px-3 py-2.5 md:py-2 font-mono", t.won ? "text-profit" : "text-sell")}>{formatPercent(t.realizedPnlPercent)}</td>
-                    <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{t.daysHeld}d</td>
-                    <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{formatPrice(t.buyPrice)}</td>
-                    <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{formatPrice(t.exitPrice)}</td>
+                    <td className="px-3 py-2 font-mono font-bold">{t.ticker}</td>
+                    <td className="px-3 py-2 text-muted-2">{formatDate(t.exitDate)}</td>
+                    <td className={cn("px-3 py-2 font-mono", t.won ? "text-profit" : "text-sell")}>{t.won ? "+" : ""}{formatPrice(t.realizedPnl)}</td>
+                    <td className={cn("px-3 py-2 font-mono", t.won ? "text-profit" : "text-sell")}>{formatPercent(t.realizedPnlPercent)}</td>
+                    <td className="px-3 py-2 font-mono text-muted-2">{t.daysHeld}d</td>
+                    <td className="px-3 py-2 font-mono text-muted-2">{formatPrice(t.buyPrice)}</td>
+                    <td className="px-3 py-2 font-mono text-muted-2">{formatPrice(t.exitPrice)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           {/* Mobile bottom nav spacer */}
-          <div className="h-16 md:hidden" />
+          <div className="h-20 md:hidden" />
         </>
       )}
     </div>

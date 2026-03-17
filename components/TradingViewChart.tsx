@@ -40,16 +40,29 @@ function loadTradingViewScript(): Promise<void> {
     };
     script.onerror = () => {
       scriptLoading = false;
-      resolve(); // resolve anyway so we don't hang
+      resolve();
     };
     document.head.appendChild(script);
   });
+}
+
+function useIsMobile() {
+  const [mobile, setMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return mobile;
 }
 
 export default function TradingViewChart({ ticker, height = 500, interval = "D" }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetRef = useRef<{ remove: () => void } | null>(null);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
+  const chartHeight = isMobile ? 220 : height;
 
   useEffect(() => {
     if (!ticker || !containerRef.current) return;
@@ -62,13 +75,11 @@ export default function TradingViewChart({ ticker, height = 500, interval = "D" 
       await loadTradingViewScript();
       if (cancelled || !containerRef.current || !window.TradingView) return;
 
-      // Destroy previous widget
       if (widgetRef.current) {
         try { widgetRef.current.remove(); } catch { /* ignore */ }
         widgetRef.current = null;
       }
 
-      // Clear container
       containerRef.current.innerHTML = "";
 
       const containerId = `tv-chart-${ticker}-${Date.now()}`;
@@ -76,22 +87,28 @@ export default function TradingViewChart({ ticker, height = 500, interval = "D" 
       inner.id = containerId;
       containerRef.current.appendChild(inner);
 
+      const mobile = window.innerWidth <= 768;
+      const h = mobile ? 220 : height;
+
       widgetRef.current = new window.TradingView.widget({
         symbol: resolvedSymbol,
         interval: interval,
         container_id: containerId,
         width: "100%",
-        height: height,
+        height: h,
         theme: "dark",
-        style: "1",
+        style: mobile ? "3" : "1", // area chart on mobile, candlestick on desktop
         locale: "en",
         toolbar_bg: "#101217",
         enable_publishing: false,
-        allow_symbol_change: true,
-        hide_side_toolbar: false,
-        studies: ["MASimple@tv-basicstudies"],
+        allow_symbol_change: !mobile,
+        hide_side_toolbar: mobile,
+        hide_top_toolbar: mobile,
+        hide_legend: mobile,
+        hide_volume: mobile,
+        studies: mobile ? [] : ["MASimple@tv-basicstudies"],
         backgroundColor: "#0b0c10",
-        gridColor: "#15171e",
+        gridColor: mobile ? "#0b0c10" : "#15171e",
         autosize: false,
         save_image: false,
       });
@@ -109,19 +126,28 @@ export default function TradingViewChart({ ticker, height = 500, interval = "D" 
         widgetRef.current = null;
       }
     };
-  }, [ticker, height, interval]);
+  }, [ticker, height, interval, isMobile]);
 
   return (
-    <div className="relative">
+    <div className="relative" style={{ touchAction: "pan-y" }}>
       {loading && (
         <div
           className="flex items-center justify-center text-muted text-xs bg-surface rounded-lg"
-          style={{ height }}
+          style={{ height: chartHeight }}
         >
           Loading chart...
         </div>
       )}
-      <div ref={containerRef} style={{ height, display: loading ? "none" : "block" }} />
+      <div
+        ref={containerRef}
+        style={{
+          height: chartHeight,
+          display: loading ? "none" : "block",
+          overflow: "hidden",
+          borderRadius: isMobile ? "12px" : undefined,
+          pointerEvents: "auto",
+        }}
+      />
     </div>
   );
 }

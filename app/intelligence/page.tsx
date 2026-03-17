@@ -162,18 +162,18 @@ OUTPUT FORMAT:
   }, [settings.groqApiKey, sectorPerformance, indices, marketNews, breadth]);
 
   return (
-    <div className="p-4 md:p-6 space-y-5">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold">Market Intelligence</h1>
-          <p className="text-xs text-muted mt-0.5">Global trends, sector performance &amp; market overview</p>
+          <h1 className="text-lg md:text-xl font-bold">Market Intelligence</h1>
+          <p className="text-[10px] md:text-xs text-muted mt-0.5">Global trends, sector performance &amp; market overview</p>
         </div>
         {hasGroqKey && (
           <button
             onClick={fetchMarketBriefing}
             disabled={briefingLoading || screenerData.length === 0}
-            className="px-4 py-2 bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
+            className="px-3 md:px-4 py-2 min-h-[44px] bg-buy/10 text-buy text-xs md:text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
           >
             {briefingLoading ? "Analyzing..." : "Get Market Briefing"}
           </button>
@@ -181,18 +181,18 @@ OUTPUT FORMAT:
       </div>
 
       {/* Market Indices */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
         {indices && indices.length > 0 ? indices.map((idx) => (
-          <div key={idx.label} className="bg-surface border border-border rounded-lg p-3">
-            <div className="text-xs text-muted mb-1">{idx.label}</div>
-            <div className="font-mono text-white font-bold">{idx.value.toLocaleString()}</div>
-            <div className={cn("font-mono text-xs mt-0.5", idx.change >= 0 ? "text-profit" : "text-sell")}>
+          <div key={idx.label} className="bg-surface border border-border rounded-lg p-2 md:p-3">
+            <div className="text-[10px] md:text-xs text-muted mb-0.5 md:mb-1">{idx.label}</div>
+            <div className="font-mono text-white font-bold text-sm md:text-base">{idx.value.toLocaleString()}</div>
+            <div className={cn("font-mono text-[10px] md:text-xs mt-0.5", idx.change >= 0 ? "text-profit" : "text-sell")}>
               {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}%
             </div>
           </div>
         )) : (
           Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-surface border border-border rounded-lg p-3 animate-pulse">
+            <div key={i} className="bg-surface border border-border rounded-lg p-2 md:p-3 animate-pulse">
               <div className="h-3 bg-white/10 rounded w-16 mb-2" />
               <div className="h-5 bg-white/10 rounded w-20 mb-1" />
               <div className="h-3 bg-white/10 rounded w-12" />
@@ -203,30 +203,30 @@ OUTPUT FORMAT:
 
       {/* Market Breadth */}
       {breadth && (
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="text-xs font-bold text-white uppercase tracking-wider mb-3">Market Breadth</div>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+        <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+          <div className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider mb-2 md:mb-3">Market Breadth</div>
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-profit">{breadth.up}</div>
-              <div className="text-xs text-muted">Advancing</div>
+              <div className="text-xl md:text-2xl font-bold text-profit">{breadth.up}</div>
+              <div className="text-[10px] md:text-xs text-muted">Advancing</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-sell">{breadth.down}</div>
-              <div className="text-xs text-muted">Declining</div>
+              <div className="text-xl md:text-2xl font-bold text-sell">{breadth.down}</div>
+              <div className="text-[10px] md:text-xs text-muted">Declining</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-muted-2">{breadth.unchanged}</div>
-              <div className="text-xs text-muted">Unchanged</div>
+              <div className="text-xl md:text-2xl font-bold text-muted-2">{breadth.unchanged}</div>
+              <div className="text-[10px] md:text-xs text-muted">Unchanged</div>
             </div>
             <div>
-              <div className={cn("text-2xl font-bold", breadth.avgChange >= 0 ? "text-profit" : "text-sell")}>
+              <div className={cn("text-xl md:text-2xl font-bold", breadth.avgChange >= 0 ? "text-profit" : "text-sell")}>
                 {breadth.avgChange >= 0 ? "+" : ""}{breadth.avgChange.toFixed(2)}%
               </div>
-              <div className="text-xs text-muted">Avg Change</div>
+              <div className="text-[10px] md:text-xs text-muted">Avg Change</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-buy">{breadth.buySignals}</div>
-              <div className="text-xs text-muted">Buy Signals</div>
+              <div className="text-xl md:text-2xl font-bold text-buy">{breadth.buySignals}</div>
+              <div className="text-[10px] md:text-xs text-muted">Buy Signals</div>
             </div>
           </div>
           {/* Breadth bar */}
@@ -244,39 +244,39 @@ OUTPUT FORMAT:
 
       {/* AI Market Briefing */}
       {marketBriefing && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="bg-surface border border-border rounded-lg p-4">
-            <div className="text-xs font-bold text-buy mb-2 uppercase tracking-wider">Market Overview</div>
-            <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.overview}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
+          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-bold text-buy mb-1.5 md:mb-2 uppercase tracking-wider">Market Overview</div>
+            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.overview}</p>
           </div>
-          <div className="bg-surface border border-border rounded-lg p-4">
-            <div className="text-xs font-bold text-profit mb-2 uppercase tracking-wider">Sector Analysis</div>
-            <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.sectors}</p>
+          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-bold text-profit mb-1.5 md:mb-2 uppercase tracking-wider">Sector Analysis</div>
+            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.sectors}</p>
           </div>
-          <div className="bg-surface border border-border rounded-lg p-4">
-            <div className="text-xs font-bold text-monitor mb-2 uppercase tracking-wider">Short-Term Outlook</div>
-            <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.outlook}</p>
+          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-bold text-monitor mb-1.5 md:mb-2 uppercase tracking-wider">Short-Term Outlook</div>
+            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.outlook}</p>
           </div>
-          <div className="bg-surface border border-border rounded-lg p-4">
-            <div className="text-xs font-bold text-sell mb-2 uppercase tracking-wider">Key Risks</div>
-            <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.risks}</p>
+          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-bold text-sell mb-1.5 md:mb-2 uppercase tracking-wider">Key Risks</div>
+            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.risks}</p>
           </div>
-          <div className="md:col-span-2 bg-buy/5 border border-buy/20 rounded-lg p-4">
-            <div className="text-xs font-bold text-buy mb-2 uppercase tracking-wider">Opportunities</div>
-            <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.opportunities}</p>
+          <div className="md:col-span-2 bg-buy/5 border border-buy/20 rounded-lg p-3 md:p-4">
+            <div className="text-[10px] md:text-xs font-bold text-buy mb-1.5 md:mb-2 uppercase tracking-wider">Opportunities</div>
+            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.opportunities}</p>
           </div>
         </div>
       )}
 
       {/* Sector Performance */}
       {sectorPerformance.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="text-xs font-bold text-white uppercase tracking-wider mb-3">Sector Performance</div>
-          <div className="space-y-2">
+        <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+          <div className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider mb-2 md:mb-3">Sector Performance</div>
+          <div className="space-y-2 overflow-x-auto">
             {sectorPerformance.map((sector) => (
-              <div key={sector.sector} className="flex items-center gap-3">
-                <div className="w-32 text-xs text-muted truncate">{sector.sector.replace("_", " ")}</div>
-                <div className="flex-1 h-5 bg-white/5 rounded-full overflow-hidden relative">
+              <div key={sector.sector} className="flex items-center gap-2 md:gap-3 min-w-0">
+                <div className="w-24 md:w-32 text-[10px] md:text-xs text-muted truncate shrink-0">{sector.sector.replace("_", " ")}</div>
+                <div className="flex-1 h-4 md:h-5 bg-white/5 rounded-full overflow-hidden relative min-w-[60px]">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all",
@@ -285,7 +285,7 @@ OUTPUT FORMAT:
                     style={{ width: `${Math.min(Math.abs(sector.avgChange) * 10, 100)}%`, marginLeft: sector.avgChange < 0 ? "auto" : undefined }}
                   />
                 </div>
-                <div className={cn("w-16 text-right font-mono text-xs", sector.avgChange >= 0 ? "text-profit" : "text-sell")}>
+                <div className={cn("w-14 md:w-16 text-right font-mono text-[10px] md:text-xs shrink-0", sector.avgChange >= 0 ? "text-profit" : "text-sell")}>
                   {sector.avgChange >= 0 ? "+" : ""}{sector.avgChange.toFixed(2)}%
                 </div>
                 <div className="w-20 text-xs text-muted hidden md:block">
@@ -299,20 +299,20 @@ OUTPUT FORMAT:
 
       {/* Market News */}
       {marketNews && marketNews.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg p-4">
-          <div className="text-xs font-bold text-white uppercase tracking-wider mb-3">Latest Market News</div>
-          <div className="space-y-3">
+        <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
+          <div className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider mb-2 md:mb-3">Latest Market News</div>
+          <div className="space-y-1 md:space-y-3">
             {marketNews.slice(0, 8).map((article) => (
               <a
                 key={article.id}
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors"
+                className="block hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors min-h-[44px] flex items-center"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-sm text-white leading-snug line-clamp-2">{article.headline}</div>
+                    <div className="text-xs md:text-sm text-white leading-snug line-clamp-2">{article.headline}</div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] text-muted">{article.source}</span>
                       <span className="text-[10px] text-muted">•</span>
@@ -328,21 +328,21 @@ OUTPUT FORMAT:
 
       {/* No Groq key */}
       {!hasGroqKey && !marketBriefing && (
-        <div className="bg-surface border border-buy/20 rounded-xl p-5">
-          <div className="text-sm font-bold text-white mb-1">Enable AI Market Briefing</div>
-          <p className="text-xs text-muted-2 mb-3">
+        <div className="bg-surface border border-buy/20 rounded-xl p-3 md:p-5">
+          <div className="text-xs md:text-sm font-bold text-white mb-1">Enable AI Market Briefing</div>
+          <p className="text-[10px] md:text-xs text-muted-2 mb-3">
             Get AI-powered market analysis: sector rotation, risk assessment, and opportunity identification. Powered by Llama 3.3 70B via Groq (free tier).
           </p>
           <Link
             href="/settings"
-            className="px-3 py-1.5 bg-buy/10 text-buy border border-buy/20 rounded-lg text-xs hover:bg-buy/20 transition-colors inline-block"
+            className="px-3 py-2 md:py-1.5 min-h-[44px] inline-flex items-center bg-buy/10 text-buy border border-buy/20 rounded-lg text-xs hover:bg-buy/20 transition-colors"
           >
             Configure in Settings
           </Link>
         </div>
       )}
       {/* Mobile bottom nav spacer */}
-      <div className="h-16 md:hidden" />
+      <div className="h-20 md:hidden" />
     </div>
   );
 }
