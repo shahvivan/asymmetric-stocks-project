@@ -285,3 +285,4 @@ MIT — free to use, modify, and learn from.
 <div align="center">
   <sub>Built by a trader who got tired of having 15 tabs open.</sub>
 </div>
+
