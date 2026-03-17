@@ -4,7 +4,6 @@ import useSWR from "swr";
 import { useApp } from "@/app/providers";
 import { FinnhubFundamentals } from "@/lib/types";
 import { formatLargeNumber } from "@/lib/utils";
-import SetupPrompt from "./SetupPrompt";
 
 interface FinnhubFundamentalsProps {
   ticker: string;
