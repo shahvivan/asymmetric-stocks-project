@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { useApp } from "@/app/providers";
 import { FinnhubFundamentals } from "@/lib/types";
 import { formatLargeNumber } from "@/lib/utils";
+import SetupPrompt from "./SetupPrompt";
 
 interface RightPanelProps {
   ticker: string;
@@ -404,9 +405,8 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
         {settings.groqApiKey ? (
           <>
             {!settings.finnhubApiKey && (
-              <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "6px", padding: "var(--sp-2) var(--sp-3)", marginBottom: "var(--sp-2)", fontSize: "var(--fs-11)", color: "var(--t-low)" }}>
-                📰 Add a free <a href="https://finnhub.io/register" target="_blank" rel="noopener noreferrer" style={{ color: "var(--green)", fontWeight: 700, textDecoration: "none" }}>Finnhub key</a> in{" "}
-                <a href="/settings" style={{ color: "var(--blue)", fontWeight: 600, textDecoration: "none" }}>Settings</a> for real-time news &amp; fundamentals
+              <div style={{ marginBottom: "var(--sp-2)" }}>
+                <SetupPrompt variant="finnhub" size="compact" />
               </div>
             )}
             <div className="ai-quick-questions">
@@ -463,53 +463,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
           </>
         ) : (
           <div style={{ padding: "var(--sp-3)" }}>
-            <p style={{ fontSize: "var(--fs-11)", color: "var(--t-low)", marginBottom: "var(--sp-3)" }}>
-              Unlock AI analysis, real-time news, and fundamentals — both APIs are <strong style={{ color: "var(--green)" }}>100% free</strong>.
-            </p>
-
-            {/* Groq Setup */}
-            {!settings.groqApiKey && (
-              <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "var(--sp-3)", marginBottom: "var(--sp-3)" }}>
-                <div style={{ fontSize: "var(--fs-11)", fontWeight: 700, color: "var(--green)", marginBottom: "var(--sp-2)" }}>
-                  🧠 AI Analysis — Get your free Groq key:
-                </div>
-                <SetupStep number={1} text="Go to" link="https://console.groq.com" linkText="console.groq.com" />
-                <SetupStep number={2} text="Sign up with Google or email (free, no credit card)" />
-                <SetupStep number={3} text='Click "API Keys" in the left sidebar' />
-                <SetupStep number={4} text='Click "Create API Key" and copy it (starts with gsk_)' />
-                <SetupStep number={5} text="Paste it in Settings → AI Stock Analysis" />
-              </div>
-            )}
-
-            {/* Finnhub Setup */}
-            {!settings.finnhubApiKey && (
-              <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "8px", padding: "var(--sp-3)", marginBottom: "var(--sp-3)" }}>
-                <div style={{ fontSize: "var(--fs-11)", fontWeight: 700, color: "var(--green)", marginBottom: "var(--sp-2)" }}>
-                  📰 Real-Time News — Get your free Finnhub key:
-                </div>
-                <SetupStep number={1} text="Go to" link="https://finnhub.io/register" linkText="finnhub.io/register" />
-                <SetupStep number={2} text="Sign up with email (free, no credit card)" />
-                <SetupStep number={3} text="Your API key is shown on the dashboard after signup" />
-                <SetupStep number={4} text="Paste it in Settings → Real-Time News" />
-              </div>
-            )}
-
-            <a
-              href="/settings"
-              style={{
-                display: "inline-block",
-                fontSize: "var(--fs-11)",
-                fontWeight: 600,
-                color: "var(--blue)",
-                textDecoration: "none",
-                padding: "var(--sp-2) var(--sp-3)",
-                border: "1px solid var(--blue)",
-                borderRadius: "6px",
-                opacity: 0.9,
-              }}
-            >
-              Go to Settings →
-            </a>
+            <SetupPrompt variant={!settings.finnhubApiKey ? "both" : "groq"} />
           </div>
         )}
       </div>
@@ -517,43 +471,3 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
   );
 }
 
-function SetupStep({ number, text, link, linkText }: { number: number; text: string; link?: string; linkText?: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "6px" }}>
-      <span
-        style={{
-          flexShrink: 0,
-          width: "18px",
-          height: "18px",
-          borderRadius: "50%",
-          background: "rgba(0, 212, 170, 0.15)",
-          color: "var(--green)",
-          fontSize: "10px",
-          fontWeight: 700,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: "1px",
-        }}
-      >
-        {number}
-      </span>
-      <span style={{ fontSize: "var(--fs-11)", color: "var(--t-low)", lineHeight: 1.5 }}>
-        {text}
-        {link && (
-          <>
-            {" "}
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: "var(--green)", fontWeight: 700, textDecoration: "none" }}
-            >
-              {linkText || link}
-            </a>
-          </>
-        )}
-      </span>
-    </div>
-  );
-}

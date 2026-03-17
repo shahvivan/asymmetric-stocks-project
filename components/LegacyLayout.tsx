@@ -1,17 +1,22 @@
 "use client";
 
 import Nav from "@/components/Nav";
-import SubpageTopbar from "@/components/SubpageTopbar";
+import Topbar from "@/components/Topbar";
 
 export default function LegacyLayout({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <div className="app-shell">
+      {/* Desktop: full topbar with search, nav, indices, market status */}
+      <div className="hidden md:block">
+        <Topbar />
+      </div>
+      <div className="app-body">
+        <main className="main-area">
+          {children}
+        </main>
+      </div>
+      {/* Mobile: bottom tabs only */}
       <Nav />
-      {/* Desktop: top navigation bar matching dashboard's topbar */}
-      <SubpageTopbar />
-      <main className="md:ml-52 pb-24 md:pb-0 min-h-screen md:h-screen md:overflow-y-auto overflow-x-hidden">
-        {children}
-      </main>
-    </>
+    </div>
   );
 }

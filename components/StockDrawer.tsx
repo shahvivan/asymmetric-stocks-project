@@ -8,6 +8,7 @@ import TradingViewChart from "./TradingViewChart";
 import NewsFeed from "./NewsFeed";
 import FinnhubFundamentalsDisplay from "./FinnhubFundamentals";
 import { useApp } from "@/app/providers";
+import SetupPrompt from "./SetupPrompt";
 
 interface StockDrawerProps {
   stock: EnrichedStock | null;
@@ -126,7 +127,7 @@ export default function StockDrawer({ stock, onClose }: StockDrawerProps) {
           </div>
 
           {/* AI Analysis */}
-          {settings.groqApiKey && (
+          {settings.groqApiKey ? (
             <div className="bg-surface border border-border rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-bold text-white">AI Analysis</div>
@@ -171,6 +172,8 @@ export default function StockDrawer({ stock, onClose }: StockDrawerProps) {
                 </div>
               )}
             </div>
+          ) : (
+            <SetupPrompt variant="groq" size="compact" />
           )}
 
           {/* Key Metrics */}

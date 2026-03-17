@@ -187,6 +187,7 @@ export const DEFAULT_SETTINGS = {
   notifyStrongBuy: true,
   notifyStopLossWarning: true,
   notifyTakeProfit: true,
+  enabledUniverses: ["core"] as string[],
 };
 
 // Nav items

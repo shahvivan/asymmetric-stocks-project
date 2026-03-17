@@ -32,15 +32,24 @@ export function calculateReturn(closePrices: number[], days: number): number | n
   return Math.round(((latest - past) / past) * 10000) / 100; // percentage with 2 decimals
 }
 
+export interface HVResult {
+  percentile: number;
+  hv30: number; // 30-day annualized HV (raw decimal, e.g. 0.35 = 35%)
+}
+
 export function calculateHVPercentile(closePrices: number[]): number {
-  if (closePrices.length < 60) return 50;
+  return calculateHV(closePrices).percentile;
+}
+
+export function calculateHV(closePrices: number[]): HVResult {
+  if (closePrices.length < 60) return { percentile: 50, hv30: 0.3 };
   const returns: number[] = [];
   for (let i = 1; i < closePrices.length; i++) {
     if (closePrices[i - 1] > 0) {
       returns.push(Math.log(closePrices[i] / closePrices[i - 1]));
     }
   }
-  if (returns.length < 30) return 50;
+  if (returns.length < 30) return { percentile: 50, hv30: 0.3 };
 
   // 30-day annualized HV
   const recent30 = returns.slice(-30);
@@ -57,7 +66,25 @@ export function calculateHVPercentile(closePrices: number[]): number {
     hvValues.push(Math.sqrt(v * 252));
   }
 
-  if (hvValues.length === 0) return 50;
+  if (hvValues.length === 0) return { percentile: 50, hv30 };
   const rank = hvValues.filter((v) => v <= hv30).length;
-  return Math.round((rank / hvValues.length) * 100);
+  return { percentile: Math.round((rank / hvValues.length) * 100), hv30 };
+}
+
+// Expected Move: E_m = Price * (HV30 / sqrt(252)) * sqrt(T)
+// T = hold window in trading days (default 10 = ~2 weeks)
+export interface ExpectedMove {
+  expectedMovePercent: number;  // e.g. 5.2 means ±5.2%
+  expectedMoveAbsolute: number; // dollar amount
+  hv30: number;                 // annualized 30-day HV
+}
+
+export function calculateExpectedMove(price: number, hv30: number, holdDays = 10): ExpectedMove {
+  const dailyVol = hv30 / Math.sqrt(252);
+  const movePercent = dailyVol * Math.sqrt(holdDays) * 100;
+  return {
+    expectedMovePercent: Math.round(movePercent * 10) / 10,
+    expectedMoveAbsolute: Math.round(price * movePercent / 100 * 100) / 100,
+    hv30,
+  };
 }

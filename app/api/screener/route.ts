@@ -2,9 +2,10 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
-import { ALL_TICKERS, getSectorForTicker } from "@/lib/constants";
+import { getSectorForTicker } from "@/lib/constants";
 import { StockQuote } from "@/lib/types";
 import { getDemoQuotes } from "@/lib/demo-data";
+import { getActiveTickers, UniversePack } from "@/lib/universe";
 
 // Yahoo Finance v8 chart endpoint — no auth needed, no rate limit issues
 // Fetches ALL tickers in parallel (~2-5 seconds for 131 tickers)
@@ -17,9 +18,14 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
 export async function GET(request: NextRequest) {
   try {
     const extraParam = request.nextUrl.searchParams.get("extra");
+    const packsParam = request.nextUrl.searchParams.get("packs");
     const forceRefresh = request.nextUrl.searchParams.get("refresh") === "1";
     const extraTickers = extraParam ? extraParam.split(",").filter(Boolean) : [];
-    const allTickers = Array.from(new Set([...ALL_TICKERS, ...extraTickers]));
+    const enabledPacks = packsParam
+      ? (packsParam.split(",") as UniversePack[])
+      : ["core" as UniversePack];
+    const baseTickers = getActiveTickers(enabledPacks);
+    const allTickers = Array.from(new Set([...baseTickers, ...extraTickers]));
 
     // Return cached data if fresh enough and not force-refreshing
     if (!forceRefresh && cachedQuotes && (Date.now() - cacheTimestamp) < CACHE_TTL_MS) {

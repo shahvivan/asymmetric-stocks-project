@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useApp } from "@/app/providers";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -24,57 +23,9 @@ const MOBILE_MORE = [NAV_ITEMS[3], NAV_ITEMS[5], NAV_ITEMS[6], NAV_ITEMS[7], NAV
 
 export default function Nav() {
   const pathname = usePathname();
-  const { finnhubConnected } = useApp();
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-52 bg-surface border-r border-border flex-col z-50">
-        <div className="p-4 border-b border-border">
-          <h1 className="text-sm font-bold text-buy tracking-wider">
-            ASYMMETRIC
-          </h1>
-          <p className="text-[10px] text-muted mt-0.5">GROWTH TERMINAL</p>
-        </div>
-        <div className="flex-1 py-2 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const active = pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                href={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
-                  active
-                    ? "text-buy bg-buy/15 border-r-2 border-buy font-semibold"
-                    : "text-muted-2 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                </svg>
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-        <div className="p-3 border-t border-border">
-          {finnhubConnected && (
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="w-1.5 h-1.5 bg-profit rounded-full animate-pulse" />
-              <span className="text-[9px] text-profit font-mono">LIVE</span>
-            </div>
-          )}
-          <p className="text-[10px] text-muted">v1.0 | CET</p>
-        </div>
-      </nav>
-
       {/* Mobile Bottom Tabs */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-gradient-to-t from-surface via-surface to-surface/95 border-t border-white/[0.06] z-50 pb-safe">
         <div className="flex justify-around">

@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { useApp } from "@/app/providers";
 import { FinnhubFundamentals } from "@/lib/types";
 import { formatLargeNumber } from "@/lib/utils";
+import SetupPrompt from "./SetupPrompt";
 
 interface FinnhubFundamentalsProps {
   ticker: string;
@@ -19,7 +20,8 @@ export default function FinnhubFundamentalsDisplay({ ticker }: FinnhubFundamenta
     { revalidateOnFocus: false, dedupingInterval: 300000 }
   );
 
-  if (!settings.finnhubApiKey || !data) return null;
+  if (!settings.finnhubApiKey) return null;
+  if (!data) return null;
 
   const items = [
     { label: "P/E Ratio", value: data.peRatio?.toFixed(1) },

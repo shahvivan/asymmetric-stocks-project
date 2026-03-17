@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/app/providers";
 import useSWR from "swr";
 
@@ -19,18 +19,24 @@ interface IndexData {
 }
 
 interface TopbarProps {
-  onSelectStock: (ticker: string, name: string) => void;
+  onSelectStock?: (ticker: string, name: string) => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-const NAV_LINKS = [
+const PRIMARY_NAV = [
   { path: "/", label: "Terminal" },
   { path: "/screener", label: "Screener" },
   { path: "/picks", label: "Picks" },
   { path: "/portfolio", label: "Portfolio" },
   { path: "/intelligence", label: "Intel" },
   { path: "/settings", label: "Settings" },
+];
+
+const SECONDARY_NAV = [
+  { path: "/journal", label: "Journal" },
+  { path: "/kelly", label: "Kelly" },
+  { path: "/watchlist", label: "Watch" },
 ];
 
 function isMarketOpen(): boolean {
@@ -46,6 +52,7 @@ function isMarketOpen(): boolean {
 
 export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: TopbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { settings, screenerData } = useApp();
   const [query, setQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -117,11 +124,15 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
   })();
 
   const handleSelect = useCallback((item: SearchResult) => {
-    onSelectStock(item.ticker, item.name);
+    if (onSelectStock) {
+      onSelectStock(item.ticker, item.name);
+    } else {
+      router.push(`/?ticker=${item.ticker}&name=${encodeURIComponent(item.name)}`);
+    }
     setQuery("");
     setShowDropdown(false);
     setActiveIndex(-1);
-  }, [onSelectStock]);
+  }, [onSelectStock, router]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!showDropdown || results.length === 0) return;
@@ -139,7 +150,12 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
         handleSelect(results[0]);
       } else if (query.trim().length > 0) {
         // Direct ticker entry — try to load it
-        onSelectStock(query.trim().toUpperCase(), query.trim().toUpperCase());
+        const ticker = query.trim().toUpperCase();
+        if (onSelectStock) {
+          onSelectStock(ticker, ticker);
+        } else {
+          router.push(`/?ticker=${ticker}&name=${ticker}`);
+        }
         setQuery("");
         setShowDropdown(false);
       }
@@ -216,7 +232,7 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
 
       {/* Nav Links */}
       <div className="topbar-nav hidden md:flex">
-        {NAV_LINKS.map((link) => (
+        {PRIMARY_NAV.map((link) => (
           <Link
             key={link.path}
             href={link.path}
@@ -225,6 +241,7 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
             {link.label}
           </Link>
         ))}
+        <MoreDropdown items={SECONDARY_NAV} pathname={pathname} />
       </div>
 
       {/* Refresh Button */}
@@ -300,6 +317,50 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
           {marketOpen ? "OPEN" : "CLOSED"}
         </span>
       </div>
+    </div>
+  );
+}
+
+function MoreDropdown({ items, pathname }: { items: { path: string; label: string }[]; pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = items.some((i) => i.path === pathname);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`topbar-nav-link ${active ? "active" : ""}`}
+        style={{ display: "flex", alignItems: "center", gap: "4px" }}
+      >
+        More
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path d={open ? "M2 6.5L5 3.5L8 6.5" : "M2 3.5L5 6.5L8 3.5"} />
+        </svg>
+      </button>
+      {open && (
+        <div className="topbar-more-dropdown">
+          {items.map((item) => (
+            <Link
+              key={item.path}
+              href={item.path}
+              onClick={() => setOpen(false)}
+              className={`topbar-nav-link ${pathname === item.path ? "active" : ""}`}
+              style={{ display: "block", padding: "8px 16px", borderRadius: 0 }}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

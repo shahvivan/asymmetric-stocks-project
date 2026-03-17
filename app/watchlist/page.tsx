@@ -108,7 +108,7 @@ export default function WatchlistPage() {
           No items in watchlist. Add tickers above.
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
           {enrichedWatchlist.map((item, index) => (
             <div
               key={item.ticker}
@@ -117,7 +117,7 @@ export default function WatchlistPage() {
               onDragEnter={() => handleDragEnter(index)}
               onDragEnd={handleDragEnd}
               onDragOver={(e) => e.preventDefault()}
-              className="bg-surface border border-border rounded-lg p-3 flex items-center gap-3 cursor-grab active:cursor-grabbing"
+              className="bg-surface border border-border rounded-lg p-3 flex items-center gap-3 cursor-grab active:cursor-grabbing card-hover"
             >
               {/* Mobile reorder buttons */}
               <div className="flex flex-col gap-0.5 md:hidden">

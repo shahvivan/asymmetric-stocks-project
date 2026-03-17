@@ -5,7 +5,7 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white)
 ![Llama](https://img.shields.io/badge/Llama_3.3_70B-Groq-orange)
 
-> Screen 250+ stocks in seconds. Find the ones worth your money.
+> Screen 500+ stocks in seconds. Find the ones worth your money.
 
 **[Try it live → asymmetric-stocks.com](https://asymmetric-stocks.com)**
 
@@ -21,7 +21,7 @@ So I built it.
 
 ## What It Does
 
-**Asymmetric** screens 250+ stocks across 14 sectors and scores each one using 8 momentum factors. It tells you which stocks have the best risk/reward setup *right now*, gives you AI-powered analysis on any stock in seconds, and tracks the overall market so you know whether it's a good day to trade at all.
+**Asymmetric** screens up to 500 stocks across 14 sectors and scores each one using a **10-factor scoring engine** with a **confluence gate** — requiring 3+ independent signal categories to fire before recommending a trade. It tells you which stocks have the best risk/reward setup *right now*, gives you AI-powered analysis on any stock in seconds, and tracks the overall market so you know whether it's a good day to trade at all.
 
 The name comes from the trading concept of **asymmetric risk/reward** — finding setups where you risk $1 to potentially make $3, $5, or more. Every feature in this app is designed to surface those opportunities.
 
@@ -37,22 +37,32 @@ SCREENSHOTS: Add screenshots of your app here for visual impact
 ## Features
 
 ### 📊 Real-Time Screener
-Screen 250+ stocks across Technology, Semiconductors, Financials, Healthcare, Energy, and 9 other sectors. Every stock gets a momentum score from 0 to 100 — sortable, filterable, updated live. No manual research, no spreadsheets, no guesswork.
+Screen up to 500 stocks across Technology, Semiconductors, Financials, Healthcare, Energy, and 9 other sectors. Choose from curated stock packs — Core (131 tickers), S&P 500 (+200), and Revolut Popular (+70). Every stock gets a momentum score from 0 to 100 — sortable, filterable, updated live.
 
-### 🧠 8-Factor Momentum Scoring
+### 🧠 10-Factor Scoring Engine + Confluence Gate
 
 | Factor | Points | What It Catches |
 |--------|--------|----------------|
-| **Volume Surge** | /20 | Institutional money flowing in — volume vs 20-day average |
-| **Breakout Proximity** | /15 | How close to 52-week highs — breakout candidates |
-| **Trend Position** | /15 | Price vs 20 & 50 day moving averages — riding the trend or fighting it |
-| **Momentum Acceleration** | /15 | Is momentum speeding up or slowing down? |
-| **RSI Sweet Spot** | /10 | RSI 55-65 is the momentum zone — strong but not overbought |
-| **Relative Strength** | /10 | Outperforming the S&P 500? Leaders, not laggers |
-| **Earnings Catalyst** | /10 | Upcoming earnings within 14 days — potential price movers |
+| **Volume Surge** | /15 | Institutional money flowing in — volume vs 20-day average |
+| **Breakout Proximity** | /12 | How close to 52-week highs — breakout candidates |
+| **Trend Position** | /12 | Price vs 20 & 50 day moving averages — riding the trend or fighting it |
+| **Momentum Acceleration** | /12 | Is momentum speeding up or slowing down? |
+| **RSI Sweet Spot** | /8 | RSI 55-65 is the momentum zone — strong but not overbought |
+| **Relative Strength** | /8 | Outperforming the S&P 500? Leaders, not laggers |
+| **Catalyst Proximity** | /10 | Upcoming earnings + macro events (FOMC, CPI, NFP) within 14 days |
 | **IV Percentile** | /5 | Options market pricing in a big move |
+| **DeMark Sequential** | /10 | TD Buy Setup (9-count) and Countdown (13-count) — exhaustion signals |
+| **Volume Profile** | /8 | Zero overhead resistance, liquidity voids, and HVN support levels |
 
-A stock scoring **75+** gets a **STRONG BUY** signal. **60+** is a **BUY**. Below 40 is a **SELL**. Simple.
+**Confluence Engine**: A stock needs score **75+** AND **4+ of 8 independent signal categories** firing for a **STRONG BUY**. Score **60+** with **3+ signals** for a **BUY**. This multi-factor gate dramatically reduces false positives.
+
+The 8 confluence categories: Momentum, Trend, Volume, Breakout, DeMark, Volume Profile, Catalyst, and IV/Expected Move.
+
+### 📐 Dynamic Risk Management
+Stop-losses and take-profit targets scale automatically with historical volatility:
+- **High volatility stocks**: Wider stops (10-12%) and wider targets
+- **Low volatility stocks**: Tighter stops (5-6%) and tighter targets
+- **Expected Move**: Calculated from 30-day HV to flag ambitious targets
 
 ### 🤖 AI Stock Analyst
 Click any stock and ask the AI anything — *"Should I buy NVDA?"*, *"Give me a trade plan for AMD"*, *"What are the 3 biggest risks?"*. The AI doesn't just give you a generic answer. It sees the live price, the score breakdown, recent news, fundamentals, and current market conditions. It gives you specific entry prices, targets, stop-losses, and position sizes.
@@ -111,10 +121,10 @@ See your open positions, current P&L, and overall portfolio health in one view.
 app/
 ├── api/
 │   ├── ai/chat/        → Groq AI proxy with context injection
-│   ├── enrich/         → RSI, SMA, momentum, IV, SPY relative strength
+│   ├── enrich/         → RSI, SMA, DeMark, Vol Profile, HV, expected move
 │   ├── finnhub/        → News & quote proxy
 │   ├── indices/        → Market indices (S&P, NASDAQ, DOW, VIX, Russell)
-│   └── screener/       → Batch stock data (40 per request)
+│   └── screener/       → Batch stock data (40 per request, multi-pack)
 ├── intelligence/       → Market overview & AI briefing
 ├── picks/              → AI-powered trade recommendations
 ├── screener/           → Full stock screener table
@@ -126,10 +136,14 @@ app/
 └── providers.tsx       → Global state: data fetching, scoring engine
 
 lib/
-├── scoring.ts          → 8-factor momentum scoring algorithm
-├── indicators.ts       → RSI, SMA, momentum, historical volatility
+├── scoring.ts          → 10-factor scoring + confluence engine
+├── indicators.ts       → RSI, SMA, momentum, HV, expected move
+├── demark.ts           → DeMark Sequential (TD Setup 9 + Countdown 13)
+├── volume-profile.ts   → Volume-at-price, HVN/LVN, zero overhead detection
+├── catalysts.ts        → Macro calendar (FOMC, CPI, NFP) + earnings proximity
+├── universe.ts         → Stock universe packs (Core, S&P 500, Revolut)
 ├── types.ts            → TypeScript interfaces
-├── constants.ts        → 250+ tickers, sector mappings, exchange overrides
+├── constants.ts        → Tickers, sector mappings, exchange overrides
 └── groq.ts             → AI prompt builders
 
 components/
@@ -155,7 +169,10 @@ components/
      │  /screener │  │  /enrich   │  │  /indices   │
      │ Price, Vol │  │ RSI, SMA   │  │ S&P, NASD  │
      │ 52W Range  │  │ Momentum   │  │ DOW, VIX   │
-     │            │  │ IV, SPY RS │  │ Russell     │
+     │ Packs: Core│  │ DeMark     │  │ Russell     │
+     │ SP500, Rev │  │ Vol Profile│  │             │
+     │            │  │ HV, ExpMove│  │             │
+     │            │  │ IV, SPY RS │  │             │
      └──────┬─────┘  └──────┬─────┘  └──────┬─────┘
             │               │               │
             └───────┬───────┘               │
@@ -163,11 +180,13 @@ components/
            ┌──────────────┐                 │
            │ providers.tsx │                 │
            │              │                 │
-           │ Preliminary  │                 │
-           │ Score (35pt) │                 │
+           │ 10-Factor    │                 │
+           │ Score (100pt)│                 │
            │      +       │                 │
-           │ Full Score   │                 │
-           │ (100pt)      │                 │
+           │ Confluence   │                 │
+           │ Gate (3+/8)  │                 │
+           │      +       │                 │
+           │ Dynamic TP/SL│                 │
            └──────┬───────┘                 │
                   │                         │
                   ▼                         ▼
@@ -182,11 +201,17 @@ components/
 
 ## Roadmap
 
+- [x] **Mobile-optimized UI** — fully responsive design with touch-friendly controls, area charts, and compact layouts
+- [x] **10-factor scoring engine** — DeMark Sequential + Volume Profile added to the original 8 factors
+- [x] **Confluence engine** — 3+ of 8 independent signal categories required for BUY recommendations
+- [x] **Dynamic risk management** — HV-scaled stop-losses and take-profit targets
+- [x] **Expected move calculation** — volatility-based move estimation for realistic target setting
+- [x] **Macro catalyst tracking** — FOMC, CPI, NFP, GDP event calendar integrated into scoring
+- [x] **Stock universe expansion** — toggleable packs (Core, S&P 500, Revolut Popular) up to 500 tickers
 - [ ] **Backtesting engine** — test scoring accuracy against historical data
 - [ ] **Custom screener filters** — build your own screening criteria
 - [ ] **Multi-timeframe analysis** — daily, weekly, monthly trend alignment
-- [ ] **Options flow integration** — unusual options activity as a scoring factor
-- [x] **Mobile-optimized UI** — fully responsive design with touch-friendly controls, area charts, and compact layouts
+- [ ] **Options flow integration** — GEX, dark pool, unusual options activity (requires API key)
 - [ ] **Alert system** — push notifications when a stock hits your score threshold
 - [ ] **Social sentiment** — Reddit/Twitter mention tracking as a momentum signal
 

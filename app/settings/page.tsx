@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApp } from "../providers";
 import { formatPrice } from "@/lib/utils";
+import { PACK_INFO, UniversePack } from "@/lib/universe";
 import toast from "react-hot-toast";
 
 export default function SettingsPage() {
@@ -48,7 +49,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl space-y-6">
+    <div className="p-4 md:p-6 max-w-3xl md:mx-auto space-y-6">
       <h1 className="text-xl font-bold">Settings</h1>
 
       {/* Cash Management */}
@@ -99,6 +100,43 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </Section>
+
+      {/* Stock Universe */}
+      <Section title="Stock Universe">
+        <p className="text-xs text-muted mb-3">
+          Choose which stock packs to scan. More packs = longer load times. Max 500 tickers.
+        </p>
+        <div className="space-y-2">
+          {(Object.entries(PACK_INFO) as [UniversePack, typeof PACK_INFO[UniversePack]][]).map(([key, info]) => {
+            const enabled = (settings.enabledUniverses || ["core"]).includes(key);
+            const isCore = key === "core";
+            return (
+              <label key={key} className="flex items-center justify-between cursor-pointer py-1">
+                <div>
+                  <span className="text-sm text-white">{info.label}</span>
+                  <span className="text-xs text-muted ml-2">({info.count} stocks)</span>
+                  <p className="text-[10px] text-muted-2">{info.description}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (isCore) return;
+                    const current = settings.enabledUniverses || ["core"];
+                    const next = enabled
+                      ? current.filter((p) => p !== key)
+                      : [...current, key];
+                    updateSettings({ enabledUniverses: next });
+                    toast.success(enabled ? `${info.label} disabled` : `${info.label} enabled — refresh screener`);
+                  }}
+                  disabled={isCore}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${enabled ? "bg-buy" : "bg-white/10"} ${isCore ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${enabled ? "left-5" : "left-0.5"}`} />
+                </button>
+              </label>
+            );
+          })}
+        </div>
       </Section>
 
       {/* Trading */}
@@ -274,7 +312,7 @@ export default function SettingsPage() {
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (<div className="bg-surface border border-border rounded-lg p-4 space-y-3"><h2 className="text-sm font-bold text-white">{title}</h2>{children}</div>);
+  return (<div className="bg-surface border border-border rounded-lg p-4 space-y-3 card-hover"><h2 className="text-sm font-bold text-white">{title}</h2>{children}</div>);
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -58,7 +58,8 @@ export default function KellyPage() {
         </div>
       )}
 
-      {/* Inputs */}
+      {/* Inputs + Results side-by-side on desktop */}
+      <div className="md:grid md:grid-cols-2 md:gap-6 space-y-4 md:space-y-0">
       <div className="bg-surface border border-border rounded-lg p-4 space-y-4">
         <Slider label="Win Rate" value={winRate} onChange={setWinRate} min={10} max={90} unit="%" />
         <Slider label="Average Win" value={avgWin} onChange={setAvgWin} min={1} max={100} unit="%" step={0.5} />
@@ -71,7 +72,7 @@ export default function KellyPage() {
       </div>
 
       {/* Results Comparison */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 gap-3">
         <ResultCard
           title="Full Kelly"
           fraction={full.kellyFraction}
@@ -96,6 +97,7 @@ export default function KellyPage() {
           ruin={quarter.riskOfRuin}
           highlight={false}
         />
+      </div>
       </div>
 
       {/* Projections */}
@@ -147,7 +149,7 @@ function ResultCard({ title, fraction, size, percent, ruin, highlight }: {
 }) {
   return (
     <div className={cn(
-      "border rounded-lg p-3 space-y-2",
+      "border rounded-lg p-3 space-y-2 card-hover",
       highlight ? "bg-buy/10 border-buy/20" : "bg-surface border-border"
     )}>
       <div className={cn("text-xs font-bold", highlight ? "text-buy" : "text-muted")}>{title}</div>

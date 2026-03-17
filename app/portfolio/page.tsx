@@ -69,7 +69,7 @@ export default function PortfolioPage() {
           No open positions. Click &quot;+ Log Trade&quot; to add one.
         </div>
       ) : (
-        <div className="space-y-3 card-stagger">
+        <div className="space-y-3 md:grid md:grid-cols-2 md:gap-4 md:space-y-0 card-stagger">
           {positions.map((pos) => (
             <PositionCard
               key={pos.id}
@@ -119,7 +119,7 @@ export default function PortfolioPage() {
 
 function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-surface border border-border rounded-xl p-3 card-hover">
+    <div className="bg-surface border border-border rounded-xl p-3 card-hover transition-all">
       <div className="text-[10px] text-muted">{label}</div>
       <div className={cn("text-lg font-mono font-bold", color || "text-white")}>{value}</div>
     </div>
@@ -159,7 +159,7 @@ function PositionCard({
   const signalStyle = signal ? SIGNAL_STYLES[signal.type] : null;
 
   return (
-    <div className="bg-surface border border-border rounded-xl p-4 hover:border-white/10 transition-colors">
+    <div className="bg-surface border border-border rounded-xl p-4 hover:border-white/10 transition-colors card-hover">
       {/* Signal badge */}
       {signalStyle && (
         <div className={cn("flex items-center gap-2 mb-2 px-2 py-1 rounded-lg", signalStyle.bg)}>

@@ -8,6 +8,7 @@ import { generateWhyNarrative, generateRiskNarrative } from "@/lib/narratives";
 import { load, save, KEYS } from "@/lib/storage";
 import AsymmetryBar from "@/components/AsymmetryBar";
 import RevolutOrder from "@/components/RevolutOrder";
+import SetupPrompt from "@/components/SetupPrompt";
 import toast from "react-hot-toast";
 
 interface AIStockAnalysis {
@@ -142,12 +143,17 @@ export default function PicksPage() {
         )}
       </div>
 
+      {/* Setup prompt when no AI key */}
+      {!hasGroqKey && (
+        <SetupPrompt variant="groq" />
+      )}
+
       {/* AI Best New Buy (hero card) */}
       {briefing?.topNewBuy && (() => {
         const topStock = screenerData.find((s) => s.ticker === briefing.topNewBuy!.ticker);
         const score = topStock?.asymmetryScore ?? null;
         return (
-          <div className="bg-gradient-to-r from-buy/10 to-profit/10 border border-buy/30 rounded-xl p-3 md:p-5">
+          <div className="bg-gradient-to-r from-buy/10 to-profit/10 border border-buy/30 rounded-xl p-3 md:p-5 card-hover">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs font-bold text-buy bg-buy/20 px-2 py-0.5 rounded">AI TOP PICK</span>
               <span className="text-xs text-muted">
@@ -211,7 +217,8 @@ export default function PicksPage() {
             </p>
           </div>
         ) : (
-          picks.map((stock) => (
+          <div className="md:grid md:grid-cols-2 md:gap-4 space-y-3 md:space-y-0">
+          {picks.map((stock) => (
             <PickCard
               key={stock.ticker}
               stock={stock}
@@ -222,7 +229,8 @@ export default function PicksPage() {
               onRevolut={() => setRevolutStock(stock)}
               onFeedback={(thumbsUp) => { logFeedback(stock.ticker, stock.asymmetryScore, thumbsUp); toast.success(thumbsUp ? "Noted as good pick" : "Noted — will improve"); }}
             />
-          ))
+          ))}
+          </div>
         )}
       </div>
 
@@ -251,7 +259,7 @@ function ActionCard({ action }: { action: AIAction }) {
   }[action.type] || { color: "text-muted-2", bg: "bg-white/10", border: "border-border" };
 
   return (
-    <div className={cn("border rounded-lg p-3 md:p-4", config.bg, config.border)}>
+    <div className={cn("border rounded-lg p-3 md:p-4 card-hover", config.bg, config.border)}>
       <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className={cn("text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center", config.color, config.bg)}>
@@ -297,7 +305,7 @@ function PickCard({
   const risk = generateRiskNarrative(stock);
 
   return (
-    <div className="bg-surface border border-border rounded-lg overflow-hidden">
+    <div className="bg-surface border border-border rounded-lg overflow-hidden card-hover">
       <div onClick={onToggle} className="flex items-center justify-between p-3 md:p-4 cursor-pointer hover:bg-white/10 transition-colors">
         <div className="flex items-center gap-2 md:gap-3 min-w-0">
           <span className={cn("text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center shrink-0", stock.signal === "STRONG BUY" ? "text-profit bg-profit/20 border border-profit/30" : "text-buy bg-buy/20 border border-buy/30")}>

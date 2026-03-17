@@ -301,13 +301,17 @@ function ScreenerDataLoader({ setDataSource, refreshCounter, setIsRefreshing }: 
     const params = new URLSearchParams();
     if (extraTickers.length > 0) params.set("extra", extraTickers.join(","));
     if (settings.finnhubApiKey) params.set("finnhubToken", settings.finnhubApiKey);
+    // Universe packs
+    if (settings.enabledUniverses && settings.enabledUniverses.length > 0) {
+      params.set("packs", settings.enabledUniverses.join(","));
+    }
     // Add refresh flag when manual refresh is triggered (bypasses server cache)
     if (refreshCounter > 0) params.set("refresh", "1");
     // Include counter to bust SWR dedup
     if (refreshCounter > 0) params.set("_t", String(refreshCounter));
     const qs = params.toString();
     return qs ? `/api/screener?${qs}` : "/api/screener";
-  }, [extraTickers, settings.finnhubApiKey, refreshCounter]);
+  }, [extraTickers, settings.finnhubApiKey, settings.enabledUniverses, refreshCounter]);
 
   const { data: result, isValidating } = useSWR(screenerUrl, screenerFetcher, {
     refreshInterval: 0, // NO auto-refresh — manual only
@@ -340,6 +344,8 @@ function ScreenerDataLoader({ setDataSource, refreshCounter, setIsRefreshing }: 
         daysToEarnings: null as number | null, asymmetryScore: score, breakdown,
         signal: (score >= 75 ? "STRONG BUY" : score >= 60 ? "BUY" : "WATCH") as EnrichedStock["signal"],
         tradeSetup: null,
+        confluenceCount: 0, confluenceSignals: [] as string[],
+        demark: null, expectedMove: null, volumeProfile: null,
       };
     });
   }, [quotes]);

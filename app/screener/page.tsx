@@ -113,10 +113,10 @@ export default function ScreenerPage() {
       {screenerData.length === 0 ? (
         <SkeletonTable rows={15} />
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto relative -webkit-overflow-scrolling-touch" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div className="border border-border rounded-lg overflow-x-auto relative md:max-h-[calc(100vh-220px)] md:overflow-y-auto -webkit-overflow-scrolling-touch" style={{ WebkitOverflowScrolling: "touch" }}>
           <table className="w-full text-xs md:text-sm md:min-w-0">
             <thead>
-              <tr className="bg-surface-2 text-muted-2 text-xs font-semibold border-b border-border">
+              <tr className="bg-surface-2 text-muted-2 text-xs font-semibold border-b border-border sticky-thead">
                 {([
                   ["ticker", "Ticker"],
                   ["price", "Price"],

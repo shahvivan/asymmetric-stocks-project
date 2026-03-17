@@ -28,6 +28,35 @@ export interface EnrichmentData {
   sma50: number | null;
   return20d: number | null;
   spyReturn20d: number | null;
+  // Phase 1 additions
+  demark: DemarkSummary | null;
+  volumeProfile: VolumeProfileSummary | null;
+  expectedMove: ExpectedMoveSummary | null;
+  hv30: number | null;
+}
+
+export interface DemarkSummary {
+  buySetup: number;
+  buySetup9: boolean;
+  buyCountdown: number;
+  buyCountdown13: boolean;
+  sellSetup: number;
+  sellSetup9: boolean;
+  sellCountdown: number;
+  sellCountdown13: boolean;
+  activeSignal: "TD_BUY_9" | "TD_BUY_13" | "TD_SELL_9" | "TD_SELL_13" | null;
+}
+
+export interface VolumeProfileSummary {
+  hasZeroOverhead: boolean;
+  nearestHVNSupport: number | null;
+  nearestLVNAbove: number | null;
+}
+
+export interface ExpectedMoveSummary {
+  expectedMovePercent: number;
+  expectedMoveAbsolute: number;
+  hv30: number;
 }
 
 export interface EnrichedStock extends StockQuote {
@@ -40,6 +69,12 @@ export interface EnrichedStock extends StockQuote {
   breakdown: ScoreBreakdown;
   signal: "STRONG BUY" | "BUY" | "WATCH" | "NONE";
   tradeSetup: TradeSetup | null;
+  // Phase 1 additions
+  confluenceCount: number;
+  confluenceSignals: string[];
+  demark: DemarkSummary | null;
+  expectedMove: ExpectedMoveSummary | null;
+  volumeProfile: VolumeProfileSummary | null;
 }
 
 // ===== Scoring =====
@@ -58,6 +93,8 @@ export interface ScoreBreakdown {
   relativeStrength?: ScoreComponent;
   earnings?: ScoreComponent;
   iv?: ScoreComponent;
+  demark?: ScoreComponent;
+  volumeProfile?: ScoreComponent;
   // Legacy (kept for backwards compat with cached data)
   low?: ScoreComponent;
   beta?: ScoreComponent;
@@ -73,6 +110,7 @@ export interface TradeSetup {
   holdWindow: [number, number];
   kellySize: number;
   kellyPercent: number;
+  dynamicStopReason?: string;
 }
 
 // ===== Positions & Trades =====
@@ -237,6 +275,7 @@ export interface Settings {
   notifyStrongBuy: boolean;
   notifyStopLossWarning: boolean;
   notifyTakeProfit: boolean;
+  enabledUniverses: string[];
 }
 
 // ===== Email =====

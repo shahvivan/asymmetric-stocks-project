@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { useApp } from "../providers";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
-import Link from "next/link";
+import SetupPrompt from "@/components/SetupPrompt";
 
 interface IndexData {
   label: string;
@@ -183,7 +183,7 @@ OUTPUT FORMAT:
       {/* Market Indices */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
         {indices && indices.length > 0 ? indices.map((idx) => (
-          <div key={idx.label} className="bg-surface border border-border rounded-lg p-2 md:p-3">
+          <div key={idx.label} className="bg-surface border border-border rounded-lg p-2 md:p-3 card-hover">
             <div className="text-[10px] md:text-xs text-muted mb-0.5 md:mb-1">{idx.label}</div>
             <div className="font-mono text-white font-bold text-sm md:text-base">{idx.value.toLocaleString()}</div>
             <div className={cn("font-mono text-[10px] md:text-xs mt-0.5", idx.change >= 0 ? "text-profit" : "text-sell")}>
@@ -308,7 +308,7 @@ OUTPUT FORMAT:
                 href={article.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors min-h-[44px] flex items-center"
+                className="block hover:bg-white/5 md:news-hover rounded-lg p-2 -mx-2 transition-colors min-h-[44px] flex items-center"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -326,20 +326,12 @@ OUTPUT FORMAT:
         </div>
       )}
 
-      {/* No Groq key */}
+      {/* Setup prompts */}
       {!hasGroqKey && !marketBriefing && (
-        <div className="bg-surface border border-buy/20 rounded-xl p-3 md:p-5">
-          <div className="text-xs md:text-sm font-bold text-white mb-1">Enable AI Market Briefing</div>
-          <p className="text-[10px] md:text-xs text-muted-2 mb-3">
-            Get AI-powered market analysis: sector rotation, risk assessment, and opportunity identification. Powered by Llama 3.3 70B via Groq (free tier).
-          </p>
-          <Link
-            href="/settings"
-            className="px-3 py-2 md:py-1.5 min-h-[44px] inline-flex items-center bg-buy/10 text-buy border border-buy/20 rounded-lg text-xs hover:bg-buy/20 transition-colors"
-          >
-            Configure in Settings
-          </Link>
-        </div>
+        <SetupPrompt variant="groq" />
+      )}
+      {!settings.finnhubApiKey && (
+        <SetupPrompt variant="finnhub" size="compact" />
       )}
       {/* Mobile bottom nav spacer */}
       <div className="h-20 md:hidden" />

@@ -4,6 +4,7 @@ import useSWR from "swr";
 import { useApp } from "@/app/providers";
 import { FinnhubNewsArticle } from "@/lib/types";
 import { getRelativeTime } from "@/lib/utils";
+import SetupPrompt from "./SetupPrompt";
 
 interface NewsFeedProps {
   ticker: string;
@@ -19,7 +20,7 @@ export default function NewsFeed({ ticker }: NewsFeedProps) {
     { refreshInterval: 60000, revalidateOnFocus: false }
   );
 
-  if (!settings.finnhubApiKey) return null;
+  if (!settings.finnhubApiKey) return <SetupPrompt variant="finnhub" size="compact" />;
 
   if (isLoading) {
     return (

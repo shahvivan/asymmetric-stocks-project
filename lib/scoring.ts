@@ -1,26 +1,27 @@
 import { StockQuote, EnrichedStock, EnrichmentData, ScoreBreakdown, ScoreComponent, TradeSetup } from "./types";
 import { KELLY_FRACTIONS, SCORE_STRONG_BUY, SCORE_BUY } from "./constants";
 import { clamp } from "./utils";
+import { scoreDemarkSignal } from "./demark";
+import { scoreVolumeProfileSignal } from "./volume-profile";
+import { scoreCatalysts } from "./catalysts";
 
-// ===== Preliminary Score (from quote data only, max ~35 pts) =====
+// ===== Preliminary Score (from quote data only, max ~27 pts) =====
 
 function scoreBreakoutProximity(pctFromHigh: number): ScoreComponent {
-  // Closer to 52w high = breaking out = higher score
   let points = 0;
-  if (pctFromHigh <= 5) points = 15;
-  else if (pctFromHigh <= 10) points = 12;
-  else if (pctFromHigh <= 15) points = 8;
-  else if (pctFromHigh <= 25) points = 4;
+  if (pctFromHigh <= 5) points = 12;
+  else if (pctFromHigh <= 10) points = 9;
+  else if (pctFromHigh <= 15) points = 6;
+  else if (pctFromHigh <= 25) points = 3;
   return { points, reason: `${pctFromHigh.toFixed(1)}% from 52w high` };
 }
 
 function scoreVolumeRatio(volumeRatio: number): ScoreComponent {
-  // Volume surge = institutional buying. Max 20pts (strongest signal)
   let points = 0;
-  if (volumeRatio >= 2.0) points = 20;
-  else if (volumeRatio >= 1.5) points = 15;
-  else if (volumeRatio >= 1.2) points = 10;
-  else if (volumeRatio >= 0.8) points = 4;
+  if (volumeRatio >= 2.0) points = 15;
+  else if (volumeRatio >= 1.5) points = 12;
+  else if (volumeRatio >= 1.2) points = 8;
+  else if (volumeRatio >= 0.8) points = 3;
   return { points, reason: `Volume ${volumeRatio.toFixed(1)}x average` };
 }
 
@@ -35,41 +36,37 @@ export function calculatePreliminaryScore(q: StockQuote): { score: number; break
 }
 
 // ===== Full Score (with enrichment data, up to 100 pts) =====
+// Rebalanced weights:
+// Breakout: 12, Volume: 15, Trend: 12, RSI: 8, Momentum: 12,
+// RelStr: 8, Catalysts: 10, IV: 5, DeMark: 10, VolProfile: 8 = 100
 
 function scoreTrendPosition(price: number, sma20: number | null, sma50: number | null): ScoreComponent {
-  // Price above both SMAs = strong uptrend
   if (sma20 === null || sma50 === null) {
-    return { points: 5, reason: "Trend: insufficient data" };
+    return { points: 4, reason: "Trend: insufficient data" };
   }
   let points = 0;
   let label = "";
   if (price > sma20 && price > sma50 && sma20 > sma50) {
-    points = 15;
-    label = "Strong uptrend (above 20 & 50 SMA, golden cross)";
+    points = 12; label = "Strong uptrend (golden cross)";
   } else if (price > sma20 && price > sma50) {
-    points = 12;
-    label = "Uptrend (above both SMAs)";
+    points = 9; label = "Uptrend (above both SMAs)";
   } else if (price > sma20) {
-    points = 8;
-    label = "Recovering (above 20 SMA only)";
+    points = 6; label = "Recovering (above 20 SMA)";
   } else if (price > sma50) {
-    points = 5;
-    label = "Mixed (above 50 SMA, below 20)";
+    points = 4; label = "Mixed (above 50 SMA only)";
   } else {
-    points = 0;
-    label = "Downtrend (below both SMAs)";
+    points = 0; label = "Downtrend (below both SMAs)";
   }
   return { points, reason: label };
 }
 
 function scoreRSIMomentumZone(rsi: number): ScoreComponent {
-  // Reward the momentum sweet spot (50-70), not oversold
   let points = 0;
-  if (rsi >= 55 && rsi <= 65) points = 10;       // Perfect momentum zone
-  else if (rsi >= 50 && rsi <= 70) points = 7;    // Good momentum
-  else if (rsi >= 70 && rsi <= 80) points = 5;    // Strong but watch for reversal
-  else if (rsi >= 40 && rsi < 50) points = 4;     // Could be turning up
-  else points = 0;                                  // <40 (weak) or >80 (overbought)
+  if (rsi >= 55 && rsi <= 65) points = 8;
+  else if (rsi >= 50 && rsi <= 70) points = 6;
+  else if (rsi >= 70 && rsi <= 80) points = 4;
+  else if (rsi >= 40 && rsi < 50) points = 3;
+  else points = 0;
   return { points, reason: `RSI ${rsi.toFixed(1)} (${getRSILabel(rsi)})` };
 }
 
@@ -86,10 +83,10 @@ function getRSILabel(rsi: number): string {
 function scoreMomentum(momentum: number | null): ScoreComponent {
   if (momentum === null) return { points: 0, reason: "No momentum data" };
   let points = 0;
-  if (momentum >= 2.0) points = 15;
-  else if (momentum >= 1.5) points = 12;
-  else if (momentum >= 1.2) points = 8;
-  else if (momentum >= 1.0) points = 4;
+  if (momentum >= 2.0) points = 12;
+  else if (momentum >= 1.5) points = 9;
+  else if (momentum >= 1.2) points = 6;
+  else if (momentum >= 1.0) points = 3;
   const label = momentum >= 1.0 ? "accelerating" : "decelerating";
   return { points, reason: `Momentum ${momentum.toFixed(2)} (${label})` };
 }
@@ -100,20 +97,10 @@ function scoreRelativeStrength(return20d: number | null, spyReturn20d: number | 
   }
   const outperformance = return20d - spyReturn20d;
   let points = 0;
-  if (outperformance >= 10) points = 10;
-  else if (outperformance >= 5) points = 7;
-  else if (outperformance >= 0) points = 4;
+  if (outperformance >= 10) points = 8;
+  else if (outperformance >= 5) points = 6;
+  else if (outperformance >= 0) points = 3;
   return { points, reason: `${return20d > 0 ? "+" : ""}${return20d.toFixed(1)}% vs SPY ${spyReturn20d > 0 ? "+" : ""}${spyReturn20d.toFixed(1)}%` };
-}
-
-function scoreEarnings(daysToEarnings: number | null): ScoreComponent {
-  if (daysToEarnings === null) return { points: 0, reason: "No earnings date" };
-  let points = 0;
-  if (daysToEarnings >= 1 && daysToEarnings <= 7) points = 10;
-  else if (daysToEarnings <= 14) points = 8;
-  else if (daysToEarnings <= 21) points = 5;
-  else if (daysToEarnings <= 30) points = 2;
-  return { points, reason: `Earnings in ${daysToEarnings}d` };
 }
 
 function scoreIV(ivPercentile: number): ScoreComponent {
@@ -122,6 +109,60 @@ function scoreIV(ivPercentile: number): ScoreComponent {
   else if (ivPercentile <= 35) points = 3;
   else if (ivPercentile <= 50) points = 1;
   return { points, reason: `IV %ile: ${ivPercentile}` };
+}
+
+// ===== Confluence Engine =====
+// 8 independent signal categories — each returns true/false
+
+function evaluateConfluence(
+  stock: StockQuote,
+  enrichment: EnrichmentData,
+  breakdown: ScoreBreakdown,
+): { count: number; signals: string[] } {
+  const signals: string[] = [];
+
+  // 1. Momentum: RSI 40-65 AND momentum > 1.0
+  if (enrichment.rsi >= 40 && enrichment.rsi <= 65 && (enrichment.momentum ?? 0) > 1.0) {
+    signals.push("Momentum");
+  }
+
+  // 2. Trend: Price > SMA20 > SMA50
+  if (enrichment.sma20 && enrichment.sma50 && stock.price > enrichment.sma20 && enrichment.sma20 > enrichment.sma50) {
+    signals.push("Trend");
+  }
+
+  // 3. Volume: Volume ratio >= 1.5x
+  if (stock.volumeRatio >= 1.5) {
+    signals.push("Volume");
+  }
+
+  // 4. Breakout: Within 10% of 52w high
+  if (stock.pctFromHigh <= 10) {
+    signals.push("Breakout");
+  }
+
+  // 5. DeMark: TD Buy 9 or 13 active
+  if (enrichment.demark && (enrichment.demark.buySetup9 || enrichment.demark.buyCountdown13)) {
+    signals.push("DeMark");
+  }
+
+  // 6. Volume Profile: Zero overhead or LVN above
+  if (enrichment.volumeProfile && (enrichment.volumeProfile.hasZeroOverhead || enrichment.volumeProfile.nearestLVNAbove)) {
+    signals.push("Vol Profile");
+  }
+
+  // 7. Catalyst: Earnings or macro within 14 days
+  if ((enrichment.daysToEarnings !== null && enrichment.daysToEarnings >= 0 && enrichment.daysToEarnings <= 14) ||
+      (breakdown.earnings && breakdown.earnings.points >= 2)) {
+    signals.push("Catalyst");
+  }
+
+  // 8. IV/Expected Move: Low IV + target feasible
+  if (enrichment.ivPercentile <= 35 && enrichment.expectedMove && enrichment.expectedMove.expectedMovePercent >= 3) {
+    signals.push("IV/EM");
+  }
+
+  return { count: signals.length, signals };
 }
 
 export function calculateFullScore(
@@ -135,22 +176,49 @@ export function calculateFullScore(
   const rsi = scoreRSIMomentumZone(enrichment.rsi);
   const momentum = scoreMomentum(enrichment.momentum);
   const relativeStrength = scoreRelativeStrength(enrichment.return20d, enrichment.spyReturn20d);
-  const earnings = scoreEarnings(enrichment.daysToEarnings);
   const iv = scoreIV(enrichment.ivPercentile);
+
+  // New scoring components
+  const demarkScore = enrichment.demark
+    ? scoreDemarkSignal(enrichment.demark)
+    : { points: 0, reason: "No DeMark data" };
+
+  const vpScore = enrichment.volumeProfile
+    ? scoreVolumeProfileSignal(enrichment.volumeProfile)
+    : { points: 0, reason: "No volume profile data" };
+
+  const catalystScore = scoreCatalysts(
+    enrichment.daysToEarnings,
+    enrichment.earningsDate,
+  );
 
   const score = clamp(
     breakout.points + volume.points + trend.points + rsi.points +
-    momentum.points + relativeStrength.points + earnings.points + iv.points,
+    momentum.points + relativeStrength.points + catalystScore.points + iv.points +
+    demarkScore.points + vpScore.points,
     0,
     100
   );
 
-  const breakdown: ScoreBreakdown = { breakout, volume, trend, rsi, momentum, relativeStrength, earnings, iv };
+  const breakdown: ScoreBreakdown = {
+    breakout, volume, trend, rsi, momentum, relativeStrength,
+    earnings: catalystScore,
+    iv,
+    demark: demarkScore,
+    volumeProfile: vpScore,
+  };
 
-  const signal: EnrichedStock["signal"] =
-    score >= SCORE_STRONG_BUY ? "STRONG BUY" : score >= SCORE_BUY ? "BUY" : "WATCH";
+  // Confluence evaluation
+  const confluence = evaluateConfluence(stock, enrichment, breakdown);
 
-  const tradeSetup = calculateTradeSetup(stock, score, accountSize);
+  // Signal assignment with confluence gate
+  let signal: EnrichedStock["signal"];
+  if (score >= SCORE_STRONG_BUY && confluence.count >= 4) signal = "STRONG BUY";
+  else if (score >= SCORE_BUY && confluence.count >= 3) signal = "BUY";
+  else if (score >= SCORE_BUY) signal = "WATCH"; // score qualifies but not enough confluence
+  else signal = "WATCH";
+
+  const tradeSetup = calculateTradeSetup(stock, score, enrichment, accountSize);
 
   return {
     ...stock,
@@ -163,10 +231,22 @@ export function calculateFullScore(
     breakdown,
     signal,
     tradeSetup,
+    confluenceCount: confluence.count,
+    confluenceSignals: confluence.signals,
+    demark: enrichment.demark,
+    expectedMove: enrichment.expectedMove,
+    volumeProfile: enrichment.volumeProfile,
   };
 }
 
-function calculateTradeSetup(stock: StockQuote, score: number, accountSize?: number): TradeSetup | null {
+// ===== Dynamic TP/SL based on HV =====
+
+function calculateTradeSetup(
+  stock: StockQuote,
+  score: number,
+  enrichment: EnrichmentData,
+  accountSize?: number
+): TradeSetup | null {
   if (score < SCORE_BUY) return null;
   if (stock.price <= 0) return null;
 
@@ -174,14 +254,34 @@ function calculateTradeSetup(stock: StockQuote, score: number, accountSize?: num
   const entryLow = Math.round(entry * 0.98 * 100) / 100;
   const entryHigh = Math.round(entry * 1.02 * 100) / 100;
 
-  // Stop loss: 8% below entry, or 2% below 52w low, whichever is higher (tighter)
-  const stopPct = Math.round(entry * 0.92 * 100) / 100;
+  // Dynamic stop loss based on HV percentile
+  const hvPct = enrichment.ivPercentile; // This is actually HV percentile
+  const hv30 = enrichment.hv30 ?? 0.3;
+  let stopPercent: number;
+  let stopReason: string;
+
+  if (hvPct > 70) {
+    // High volatility: wider stop (10-12%)
+    stopPercent = clamp(hv30 * 0.35, 0.10, 0.15);
+    stopReason = `Wide stop (HV%ile ${hvPct}, high vol)`;
+  } else if (hvPct < 30) {
+    // Low volatility: tighter stop (5-6%)
+    stopPercent = clamp(hv30 * 0.25, 0.04, 0.06);
+    stopReason = `Tight stop (HV%ile ${hvPct}, low vol)`;
+  } else {
+    // Normal: moderate stop (7-9%)
+    stopPercent = clamp(hv30 * 0.30, 0.06, 0.10);
+    stopReason = `Moderate stop (HV%ile ${hvPct})`;
+  }
+
+  const stopPct = Math.round(entry * (1 - stopPercent) * 100) / 100;
   const low52 = stock.low52w > 0 && stock.low52w < entry ? stock.low52w : entry * 0.85;
   const stopLow = Math.round(low52 * 0.98 * 100) / 100;
   let stopLoss = Math.max(stopPct, stopLow);
 
   if (stopLoss >= entry) {
-    stopLoss = Math.round(entry * 0.92 * 100) / 100;
+    stopLoss = Math.round(entry * (1 - 0.08) * 100) / 100;
+    stopReason = "Fallback 8% stop";
   }
 
   const risk = entry - stopLoss;
@@ -194,16 +294,28 @@ function calculateTradeSetup(stock: StockQuote, score: number, accountSize?: num
       holdWindow: [stock.beta >= 1.5 ? 5 : 7, stock.beta >= 1.5 ? 15 : 26],
       kellySize: Math.round((accountSize || 1500) * 0.1 * 100) / 100,
       kellyPercent: 10,
+      dynamicStopReason: "Minimum risk fallback",
     };
   }
 
-  const rawTarget = Math.round((entry + risk * 3) * 100) / 100;
+  // Dynamic target: max(3x risk, 1.5x expected move)
+  const rawTarget = entry + risk * 3;
+  const emTarget = enrichment.expectedMove
+    ? entry + enrichment.expectedMove.expectedMoveAbsolute * 1.5
+    : rawTarget;
+  const bestTarget = Math.max(rawTarget, emTarget);
+
   const high52 = stock.high52w > 0 && stock.high52w >= entry * 0.5 ? stock.high52w : entry * 1.5;
   const targetCap = Math.round(high52 * 1.05 * 100) / 100;
-  let target = Math.min(rawTarget, targetCap);
+  let target = Math.round(Math.min(bestTarget, targetCap) * 100) / 100;
 
   if (target <= entry) {
     target = Math.round(entry * 1.10 * 100) / 100;
+  }
+
+  // Flag ambitious targets
+  if (enrichment.expectedMove && target > entry + enrichment.expectedMove.expectedMoveAbsolute * 2) {
+    stopReason += " | Target beyond 2x expected move";
   }
 
   const riskReward = risk > 0 ? Math.round(((target - entry) / risk) * 10) / 10 : 0;
@@ -224,5 +336,6 @@ function calculateTradeSetup(stock: StockQuote, score: number, accountSize?: num
     holdWindow: [holdMin, holdMax],
     kellySize,
     kellyPercent: Math.round(positionPct * 100),
+    dynamicStopReason: stopReason,
   };
 }

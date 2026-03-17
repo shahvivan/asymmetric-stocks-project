@@ -5,10 +5,13 @@ import { EnrichmentData } from "@/lib/types";
 import {
   calculateRSI,
   calculateMomentum,
-  calculateHVPercentile,
+  calculateHV,
   calculateSMA,
   calculateReturn,
+  calculateExpectedMove,
 } from "@/lib/indicators";
+import { calculateDemark } from "@/lib/demark";
+import { calculateVolumeProfile } from "@/lib/volume-profile";
 
 // Module-level SPY cache (shared across requests, 15-min TTL)
 let spyCache: { return20d: number; timestamp: number } | null = null;
@@ -96,20 +99,44 @@ async function enrichTicker(ticker: string, spyReturn20d: number | null): Promis
     const result = data?.chart?.result?.[0];
     if (!result) return null;
 
-    const closes = result.indicators?.quote?.[0]?.close as number[] | undefined;
+    const quote = result.indicators?.quote?.[0];
+    const closes = quote?.close as number[] | undefined;
+    const highsRaw = quote?.high as number[] | undefined;
+    const lowsRaw = quote?.low as number[] | undefined;
+    const volumesRaw = quote?.volume as number[] | undefined;
     if (!closes || closes.length === 0) return null;
 
     const closePrices = closes.filter((c: number | null) => c != null) as number[];
     if (closePrices.length < 5) return null;
 
+    // Clean arrays (replace nulls with nearest valid value)
+    const highPrices = (highsRaw || []).map((v, i) => v ?? closes[i] ?? 0).filter(Boolean) as number[];
+    const lowPrices = (lowsRaw || []).map((v, i) => v ?? closes[i] ?? 0).filter(Boolean) as number[];
+    const volumes = (volumesRaw || []).map((v) => v ?? 0) as number[];
+
     const rsi = calculateRSI(closePrices) ?? 50;
     const momentum = calculateMomentum(closePrices) ?? 0;
-    const ivPercentile = calculateHVPercentile(closePrices);
+    const hvResult = calculateHV(closePrices);
+    const ivPercentile = hvResult.percentile;
 
-    // New: SMA and return calculations
+    // SMA and return calculations
     const sma20 = calculateSMA(closePrices, 20);
     const sma50 = calculateSMA(closePrices, 50);
     const return20d = calculateReturn(closePrices, 20);
+
+    // DeMark Sequential
+    const demarkResult = closePrices.length >= 10 && highPrices.length >= 10 && lowPrices.length >= 10
+      ? calculateDemark(closePrices, highPrices, lowPrices)
+      : null;
+
+    // Volume Profile
+    const currentPrice = closePrices[closePrices.length - 1];
+    const vpResult = highPrices.length >= 20 && lowPrices.length >= 20 && volumes.length >= 20
+      ? calculateVolumeProfile(highPrices, lowPrices, closePrices, volumes, currentPrice)
+      : null;
+
+    // Expected Move
+    const emResult = calculateExpectedMove(currentPrice, hvResult.hv30);
 
     // Earnings detection
     let earningsDate: string | null = null;
@@ -152,6 +179,28 @@ async function enrichTicker(ticker: string, spyReturn20d: number | null): Promis
       sma50,
       return20d,
       spyReturn20d,
+      demark: demarkResult ? {
+        buySetup: demarkResult.buySetup,
+        buySetup9: demarkResult.buySetup9,
+        buyCountdown: demarkResult.buyCountdown,
+        buyCountdown13: demarkResult.buyCountdown13,
+        sellSetup: demarkResult.sellSetup,
+        sellSetup9: demarkResult.sellSetup9,
+        sellCountdown: demarkResult.sellCountdown,
+        sellCountdown13: demarkResult.sellCountdown13,
+        activeSignal: demarkResult.activeSignal,
+      } : null,
+      volumeProfile: vpResult ? {
+        hasZeroOverhead: vpResult.hasZeroOverhead,
+        nearestHVNSupport: vpResult.nearestHVNSupport,
+        nearestLVNAbove: vpResult.nearestLVNAbove,
+      } : null,
+      expectedMove: {
+        expectedMovePercent: emResult.expectedMovePercent,
+        expectedMoveAbsolute: emResult.expectedMoveAbsolute,
+        hv30: emResult.hv30,
+      },
+      hv30: hvResult.hv30,
     };
   } catch (err) {
     console.error(`Failed to enrich ${ticker}:`, err);

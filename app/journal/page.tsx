@@ -97,7 +97,7 @@ export default function JournalPage() {
           {/* Charts */}
           {monthlyData.length > 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-surface border border-border rounded-lg p-4">
+              <div className="bg-surface border border-border rounded-lg p-4 card-hover">
                 <div className="text-xs text-muted mb-2">Monthly P&L</div>
                 <ResponsiveContainer width="100%" height={150}>
                   <BarChart data={monthlyData}>
@@ -109,7 +109,7 @@ export default function JournalPage() {
                 </ResponsiveContainer>
               </div>
               {cumulativeData.length > 1 && (
-                <div className="bg-surface border border-border rounded-lg p-4">
+                <div className="bg-surface border border-border rounded-lg p-4 card-hover">
                   <div className="text-xs text-muted mb-2">Cumulative Growth</div>
                   <ResponsiveContainer width="100%" height={150}>
                     <LineChart data={cumulativeData}>
@@ -166,10 +166,10 @@ export default function JournalPage() {
           </div>
 
           {/* Trade History — Desktop Table */}
-          <div className="hidden md:block border border-border rounded-lg overflow-x-auto">
+          <div className="hidden md:block border border-border rounded-lg overflow-x-auto md:max-h-[calc(100vh-500px)] md:overflow-y-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-surface-2 text-muted text-xs">
+                <tr className="bg-surface-2 text-muted text-xs sticky-thead">
                   {([["ticker", "Ticker"], ["exitDate", "Date"], ["realizedPnl", "P&L $"], ["realizedPnlPercent", "P&L %"], ["daysHeld", "Days"]] as [SortKey, string][]).map(([key, label]) => (
                     <th key={key} onClick={() => handleSort(key)} className="px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap">
                       {label} {sortKey === key && (sortDir === "asc" ? "▲" : "▼")}
@@ -204,7 +204,7 @@ export default function JournalPage() {
 
 function MiniStat({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-surface border border-border rounded-lg p-2">
+    <div className="bg-surface border border-border rounded-lg p-2 card-hover">
       <div className="text-[10px] text-muted">{label}</div>
       <div className={cn("text-sm font-mono font-bold", color || "text-white")}>{value}</div>
     </div>
