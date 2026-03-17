@@ -143,53 +143,49 @@ export default function PicksPage() {
       </div>
 
       {/* AI Best New Buy (hero card) */}
-      {briefing?.topNewBuy && (
-        <div className="bg-gradient-to-r from-buy/10 to-profit/10 border border-buy/30 rounded-xl p-3 md:p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-bold text-buy bg-buy/20 px-2 py-0.5 rounded">AI TOP PICK</span>
-            <span className="text-xs text-muted">
-              Generated {briefing.generatedAt ? new Date(briefing.generatedAt).toLocaleTimeString() : ""}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 mb-3">
-            <span className="font-mono font-bold text-white text-2xl">{briefing.topNewBuy.ticker}</span>
-            <span className={cn(
-              "text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center",
-              "text-profit bg-profit/20 border border-profit/30"
-            )}>BUY</span>
-          </div>
-          <p className="text-sm text-muted-2 leading-relaxed mb-4">{briefing.topNewBuy.reasoning}</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="bg-surface/50 rounded-lg p-2.5">
-              <span className="text-muted block mb-1">Position Size</span>
-              <div className="font-mono text-white font-bold text-sm">{briefing.topNewBuy.suggestedSize}</div>
+      {briefing?.topNewBuy && (() => {
+        const topStock = screenerData.find((s) => s.ticker === briefing.topNewBuy!.ticker);
+        const score = topStock?.asymmetryScore ?? null;
+        return (
+          <div className="bg-gradient-to-r from-buy/10 to-profit/10 border border-buy/30 rounded-xl p-3 md:p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xs font-bold text-buy bg-buy/20 px-2 py-0.5 rounded">AI TOP PICK</span>
+              <span className="text-xs text-muted">
+                Generated {briefing.generatedAt ? new Date(briefing.generatedAt).toLocaleTimeString() : ""}
+              </span>
             </div>
-            <div className="bg-surface/50 rounded-lg p-2.5">
-              <span className="text-muted block mb-1">Entry Price</span>
-              <div className="font-mono text-white font-bold text-sm">{briefing.topNewBuy.entryPrice}</div>
+            <div className="flex items-center gap-3 mb-3">
+              <span className="font-mono font-bold text-white text-2xl">{briefing.topNewBuy.ticker}</span>
+              {score !== null && (
+                <span className="font-mono font-bold text-lg text-buy">{score}<span className="text-xs text-muted font-normal">/100</span></span>
+              )}
+              <span className={cn(
+                "text-xs font-bold px-2.5 py-1 md:px-2 md:py-0.5 rounded min-h-[44px] md:min-h-0 inline-flex items-center",
+                "text-profit bg-profit/20 border border-profit/30"
+              )}>BUY</span>
             </div>
-            <div className="bg-surface/50 rounded-lg p-2.5">
-              <span className="text-muted block mb-1">Target</span>
-              <div className="font-mono text-profit font-bold text-sm">{briefing.topNewBuy.target}</div>
-            </div>
-            <div className="bg-surface/50 rounded-lg p-2.5">
-              <span className="text-muted block mb-1">Stop Loss</span>
-              <div className="font-mono text-sell font-bold text-sm">{briefing.topNewBuy.stopLoss}</div>
+            <p className="text-sm text-muted-2 leading-relaxed mb-4">{briefing.topNewBuy.reasoning}</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <div className="bg-surface/50 rounded-lg p-2.5">
+                <span className="text-muted block mb-1">Position Size</span>
+                <div className="font-mono text-white font-bold text-sm">{briefing.topNewBuy.suggestedSize}</div>
+              </div>
+              <div className="bg-surface/50 rounded-lg p-2.5">
+                <span className="text-muted block mb-1">Entry Price</span>
+                <div className="font-mono text-white font-bold text-sm">{briefing.topNewBuy.entryPrice}</div>
+              </div>
+              <div className="bg-surface/50 rounded-lg p-2.5">
+                <span className="text-muted block mb-1">Target</span>
+                <div className="font-mono text-profit font-bold text-sm">{briefing.topNewBuy.target}</div>
+              </div>
+              <div className="bg-surface/50 rounded-lg p-2.5">
+                <span className="text-muted block mb-1">Stop Loss</span>
+                <div className="font-mono text-sell font-bold text-sm">{briefing.topNewBuy.stopLoss}</div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Urgent Action */}
-      {briefing?.urgentAction && (
-        <div className="bg-sell/10 border border-sell/20 rounded-xl p-4 flex items-start gap-3">
-          <span className="text-sell text-lg">⚠</span>
-          <div>
-            <div className="text-xs font-bold text-sell mb-1">URGENT ACTION</div>
-            <p className="text-sm text-white">{briefing.urgentAction}</p>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* AI Recommendations */}
       {briefing?.actions && briefing.actions.length > 0 && (
@@ -209,9 +205,9 @@ export default function PicksPage() {
         </div>
         {picks.length === 0 ? (
           <div className="bg-surface border border-border rounded-xl p-6 text-center">
-            <div className="text-sm font-bold mb-1">No Picks Right Now</div>
+            <div className="text-sm font-bold mb-1">No Clear Buys Right Now</div>
             <p className="text-xs text-muted-2 max-w-md mx-auto">
-              No stocks meet the strict criteria. The best traders wait for the right setup.
+              No stocks in the market currently meet the criteria for a confident buy. The best traders stay patient and wait for the right setup.
             </p>
           </div>
         ) : (
@@ -308,6 +304,7 @@ function PickCard({
             {stock.signal}
           </span>
           <span className="font-mono font-bold text-white truncate">{stock.ticker}</span>
+          <span className="font-mono text-sm text-buy font-bold">{stock.asymmetryScore}</span>
           <span className="text-sm text-muted hidden md:inline">{stock.name}</span>
         </div>
         <div className="flex items-center gap-2 md:gap-3 shrink-0">
@@ -330,26 +327,29 @@ function PickCard({
             <div><span className="text-muted">Size</span><div className="font-mono text-buy text-sm font-bold md:text-xs md:font-normal">{setup.kellyPercent}%</div></div>
           </div>
 
-          {aiAnalysis && (
-            <div className="bg-buy/10 border border-buy/30 rounded-lg p-3 space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-buy">AI ANALYSIS</span>
-                <span className={cn("text-[10px] px-1.5 py-0.5 rounded", aiAnalysis.verdict === "BUY" ? "text-profit bg-profit/10" : aiAnalysis.verdict === "AVOID" ? "text-sell bg-sell/10" : "text-muted bg-white/10")}>
-                  {aiAnalysis.verdict} ({aiAnalysis.confidence})
-                </span>
-              </div>
-              <p className="text-xs text-muted-2"><span className="text-profit font-bold">Bull:</span> {aiAnalysis.bullCase}</p>
-              <p className="text-xs text-muted-2"><span className="text-sell font-bold">Bear:</span> {aiAnalysis.bearCase}</p>
+          {/* Pros & Cons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-profit/5 border border-profit/20 rounded-lg p-3">
+              <div className="text-xs font-bold text-profit mb-2">PROS</div>
+              {whyReasons.map((r, i) => (<p key={i} className="text-xs text-muted-2 mb-1">+ {r}</p>))}
+              {aiAnalysis && <p className="text-xs text-muted-2 mb-1">+ {aiAnalysis.bullCase}</p>}
             </div>
-          )}
-
-          <div>
-            <div className="text-xs font-bold text-profit mb-1">WHY THIS WINS</div>
-            {whyReasons.map((r, i) => (<p key={i} className="text-xs text-muted-2 ml-2">{r}</p>))}
+            <div className="bg-sell/5 border border-sell/20 rounded-lg p-3">
+              <div className="text-xs font-bold text-sell mb-2">CONS</div>
+              <p className="text-xs text-muted-2 mb-1">- {risk}</p>
+              {aiAnalysis && <p className="text-xs text-muted-2 mb-1">- {aiAnalysis.bearCase}</p>}
+            </div>
           </div>
-          <div>
-            <div className="text-xs font-bold text-sell mb-1">WHAT KILLS IT</div>
-            <p className="text-xs text-muted-2 ml-2">{risk}</p>
+
+          {/* Verdict */}
+          <div className={cn(
+            "rounded-lg p-3 text-sm font-bold",
+            whyReasons.length >= 3 ? "bg-profit/10 border border-profit/20 text-profit" : "bg-monitor/10 border border-monitor/20 text-monitor"
+          )}>
+            {whyReasons.length >= 3
+              ? `Pros outweigh cons — ${stock.ticker} has ${whyReasons.length} strong catalysts supporting the setup. ${aiAnalysis?.verdict === "BUY" ? "AI agrees: BUY." : "Consider buying."}`
+              : `Mixed signals — ${stock.ticker} has some momentum but risks are notable. ${aiAnalysis?.verdict === "BUY" ? "AI leans BUY, but size conservatively." : "Wait for a clearer setup."}`
+            }
           </div>
 
           <div className="flex flex-wrap gap-2">

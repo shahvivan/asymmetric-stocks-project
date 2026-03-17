@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import useSWR from "swr";
 import { useApp } from "../providers";
 import { SkeletonTable } from "@/components/Skeleton";
 import { SECTORS } from "@/lib/constants";
 import { formatPrice, formatPercent, getScoreBgClass, cn } from "@/lib/utils";
 import AsymmetryBar from "@/components/AsymmetryBar";
 import StockDrawer from "@/components/StockDrawer";
+import toast from "react-hot-toast";
 
 type SortKey = "ticker" | "price" | "asymmetryScore" | "rsi" | "pctFromHigh" | "volumeRatio" | "changePercent" | "momentum";
 type SortDir = "asc" | "desc";
@@ -24,8 +24,8 @@ export default function ScreenerPage() {
     return screenerData.find((s) => s.ticker === selectedStock.ticker) ?? null;
   }, [selectedStock, screenerData]);
 
-  // Refresh button — same SWR key as provider, triggers refetch via dedup
-  const { isLoading, mutate } = useSWR("/api/screener");
+  const { refreshScreener, isRefreshing } = useApp();
+  const [justRefreshed, setJustRefreshed] = useState(false);
 
   const enriching = screenerData.length > 0 && screenerData.some((s) => s.rsi === null);
 
@@ -69,11 +69,17 @@ export default function ScreenerPage() {
           </p>
         </div>
         <button
-          onClick={() => mutate()}
-          disabled={isLoading}
+          onClick={() => {
+            if (justRefreshed) return;
+            refreshScreener();
+            setJustRefreshed(true);
+            toast.success("Refreshing screener data...");
+            setTimeout(() => setJustRefreshed(false), 60000);
+          }}
+          disabled={isRefreshing || justRefreshed}
           className="px-3 md:px-4 py-2 min-h-[44px] bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
         >
-          {isLoading ? "Refreshing..." : "Refresh Now"}
+          {isRefreshing ? "Refreshing..." : justRefreshed ? "Up to date" : "Refresh Now"}
         </button>
       </div>
 

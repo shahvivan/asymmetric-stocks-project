@@ -167,7 +167,6 @@ export interface PortfolioValue {
 export interface AIBriefing {
   marketSentiment: "bullish" | "bearish" | "neutral";
   summary: string;
-  urgentAction: string | null;
   actions: AIAction[];
   portfolioHealth: string;
   topNewBuy: {

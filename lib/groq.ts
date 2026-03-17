@@ -62,17 +62,21 @@ RISK RULES:
 - Always include a stop loss level
 - If total portfolio is down 10%+ from peak, recommend going defensive
 
+IMPORTANT RULES FOR PICKS:
+- Only recommend BUY if the pros clearly outweigh the cons. If it's borderline, say WAIT.
+- If no stocks have a convincing setup, set topNewBuy to null — it's better to wait than force a bad trade.
+- For each action, explain the specific pros and cons and whether the bullish or bearish case is stronger.
+
 OUTPUT FORMAT (valid JSON only, no markdown):
 {
   "marketSentiment": "bullish" | "bearish" | "neutral",
   "summary": "1-2 sentence plain English overall assessment",
-  "urgentAction": "The single most important thing to do RIGHT NOW" or null,
   "actions": [
     {
       "type": "SELL" | "BUY" | "HOLD" | "SWITCH" | "TAKE_PARTIAL_PROFIT",
       "ticker": "AAPL",
       "confidence": "HIGH" | "MEDIUM" | "LOW",
-      "reasoning": "Plain English reason in 1-2 sentences",
+      "reasoning": "Plain English reason — explain the pros vs cons and which side is stronger",
       "priceTarget": "$XXX" or null,
       "stopLoss": "$XXX" or null,
       "urgency": "TODAY" | "THIS_WEEK" | "WHEN_READY"
@@ -81,12 +85,12 @@ OUTPUT FORMAT (valid JSON only, no markdown):
   "portfolioHealth": "Assessment of concentration, risk, dead money, opportunity cost",
   "topNewBuy": {
     "ticker": "XYZ",
-    "reasoning": "Why this is the #1 new buy right now",
+    "reasoning": "Why this is the #1 new buy — what pros outweigh the cons",
     "suggestedSize": "XX% of portfolio",
     "entryPrice": "$XXX",
     "target": "$XXX",
     "stopLoss": "$XXX"
-  } or null
+  } or null (set to null if no clear buys exist)
 }`;
 }
 
