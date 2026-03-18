@@ -272,9 +272,8 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
         if (stock.tradeSetup) {
           const ts = stock.tradeSetup;
           tradeSetupText = `\n\nTRADE SETUP (computed from live data):\n- Entry Zone: $${ts.entryZone[0].toFixed(2)} - $${ts.entryZone[1].toFixed(2)}\n- Target: $${ts.target.toFixed(2)} (Risk:Reward 1:${ts.riskReward.toFixed(1)})\n- Stop Loss: $${ts.stopLoss.toFixed(2)}\n- Size: ${ts.kellyPercent}% of portfolio\n- Hold Window: ${ts.holdWindow[0]}-${ts.holdWindow[1]} days`;
+          if (ts.belowThreshold) tradeSetupText += `\n- WARNING: R:R of 1:${ts.riskReward.toFixed(1)} is below the 1:1.5 professional threshold. Position size reduced. Mention this risk in your analysis.`;
           if (ts.earningsWarning) tradeSetupText += `\n- EARNINGS WARNING: ${ts.earningsWarning}`;
-        } else {
-          tradeSetupText = `\n\nTRADE SETUP: No valid trade setup — Risk:Reward ratio below 1:1.5 minimum threshold`;
         }
       }
 

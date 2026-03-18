@@ -275,7 +275,17 @@ export default function StockDrawer({ stock, onClose }: StockDrawerProps) {
             {/* Trade Setup */}
             {setup && (
               <Card variant="default" padding="sm">
-                <div className="text-sm font-bold text-white mb-2">Trade Setup</div>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-bold text-white">Trade Setup</div>
+                  {setup.belowThreshold && (
+                    <span className="text-[10px] font-bold text-monitor bg-monitor/10 px-2 py-0.5 rounded-full">R:R Below Threshold</span>
+                  )}
+                </div>
+                {setup.belowThreshold && (
+                  <div className="bg-monitor/10 border border-monitor/20 rounded-lg p-2.5 mb-2 text-[11px] text-monitor leading-relaxed">
+                    Using our ATR-based method, {stock.ticker} only gives a 1:{setup.riskReward.toFixed(1)} risk-to-reward — below the 1:1.5 professional threshold. Position size has been reduced.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted">Entry Zone</span>
@@ -293,7 +303,9 @@ export default function StockDrawer({ stock, onClose }: StockDrawerProps) {
                   </div>
                   <div>
                     <span className="text-muted">Risk:Reward</span>
-                    <div className="font-mono text-white">1:{setup.riskReward.toFixed(1)}</div>
+                    <div className={`font-mono ${setup.belowThreshold ? "text-monitor" : "text-white"}`}>
+                      1:{setup.riskReward.toFixed(1)}
+                    </div>
                   </div>
                   <div>
                     <span className="text-muted">Hold Window</span>
@@ -301,7 +313,10 @@ export default function StockDrawer({ stock, onClose }: StockDrawerProps) {
                   </div>
                   <div>
                     <span className="text-muted">Kelly Size</span>
-                    <div className="font-mono text-buy">{formatPrice(setup.kellySize)} ({setup.kellyPercent}%)</div>
+                    <div className={`font-mono ${setup.belowThreshold ? "text-monitor" : "text-buy"}`}>
+                      {formatPrice(setup.kellySize)} ({setup.kellyPercent}%)
+                      {setup.belowThreshold && <span className="text-[9px] text-monitor/60 block">reduced</span>}
+                    </div>
                   </div>
                 </div>
               </Card>

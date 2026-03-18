@@ -119,6 +119,10 @@ export interface TradeSetup {
   kellyPercent: number;
   dynamicStopReason?: string;
   earningsWarning?: string;
+  /** True when R:R is below the 1:1.5 professional threshold */
+  belowThreshold?: boolean;
+  /** Human-readable warning about why the R:R is suboptimal */
+  riskRewardWarning?: string;
 }
 
 // ===== Positions & Trades =====

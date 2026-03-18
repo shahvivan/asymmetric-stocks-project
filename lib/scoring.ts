@@ -343,19 +343,16 @@ function calculateTradeSetup(
   const reward = target - entry;
   const riskReward = risk > 0 ? Math.round((reward / risk) * 10) / 10 : 0;
 
-  // If R:R < 1.5, this is not a trade worth recommending — return null
-  // Professional traders require minimum 1:1.5 for swing trades
-  if (riskReward < 1.5) {
-    return null;
-  }
+  // Flag if R:R is below the 1:1.5 professional swing trade threshold
+  const belowThreshold = riskReward < 1.5;
 
   // Hold window based on volatility
   const holdMin = stock.beta >= 1.5 ? 3 : 5;
   const holdMax = stock.beta >= 1.5 ? 10 : 20;
 
-  // Position sizing via Kelly
+  // Position sizing via Kelly — reduce size for below-threshold setups
   const kellyFraction = KELLY_FRACTIONS.moderate;
-  const positionPct = clamp(kellyFraction * (score / 100), 0.05, 0.35);
+  const positionPct = clamp(kellyFraction * (score / 100) * (belowThreshold ? 0.5 : 1), 0.05, 0.35);
   const acctSize = accountSize || 1500;
   const kellySize = Math.round(acctSize * positionPct * 100) / 100;
 
@@ -375,5 +372,9 @@ function calculateTradeSetup(
     kellyPercent: Math.round(positionPct * 100),
     dynamicStopReason: stopReason,
     earningsWarning,
+    belowThreshold,
+    riskRewardWarning: belowThreshold
+      ? `Risk:Reward is 1:${riskReward.toFixed(1)} — below the 1:1.5 professional threshold. ATR-based method shows limited upside vs downside at current levels. Consider waiting for a better entry or tighter stop.`
+      : undefined,
   };
 }

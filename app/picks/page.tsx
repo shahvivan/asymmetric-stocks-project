@@ -360,7 +360,7 @@ function PickCard({
           <span className="font-mono text-sm">{formatPrice(stock.price)}</span>
           <span className={cn("font-mono text-sm", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>{formatPercent(stock.changePercent)}</span>
           <div className="w-20 hidden md:block"><AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" /></div>
-          {setup && <span className="text-xs text-muted hidden md:inline">1:{setup.riskReward.toFixed(1)}</span>}
+          {setup && <span className={cn("text-xs hidden md:inline", setup.belowThreshold ? "text-monitor" : "text-muted")}>1:{setup.riskReward.toFixed(1)}{setup.belowThreshold ? " !" : ""}</span>}
           <span className="text-muted text-xs">{expanded ? "\u25B2" : "\u25BC"}</span>
         </div>
       </div>
@@ -379,6 +379,11 @@ function PickCard({
               {/* Trade Setup Grid */}
               {setup ? (
                 <>
+                  {setup.belowThreshold && (
+                    <div className="bg-monitor/10 border border-monitor/20 rounded-xl p-3 text-xs text-monitor">
+                      <span className="font-bold">R:R Warning:</span> Using our ATR-based method, {stock.ticker} only gives a 1:{setup.riskReward.toFixed(1)} risk-to-reward setup — below the 1:1.5 professional threshold. Position size has been reduced. Wait for a better entry or use a tighter stop.
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                     <div className="bg-white/[0.03] rounded-lg p-2.5">
                       <span className="text-muted block mb-1">Entry</span>
@@ -394,7 +399,10 @@ function PickCard({
                     </div>
                     <div className="bg-white/[0.03] rounded-lg p-2.5">
                       <span className="text-muted block mb-1">Risk:Reward</span>
-                      <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">1:{setup.riskReward.toFixed(1)}</div>
+                      <div className={cn("font-mono text-sm font-bold md:text-xs md:font-semibold", setup.belowThreshold ? "text-monitor" : "text-white")}>
+                        1:{setup.riskReward.toFixed(1)}
+                        {setup.belowThreshold && <span className="text-[9px] text-monitor/60 block">below threshold</span>}
+                      </div>
                     </div>
                     <div className="bg-white/[0.03] rounded-lg p-2.5">
                       <span className="text-muted block mb-1">Hold</span>
@@ -402,7 +410,10 @@ function PickCard({
                     </div>
                     <div className="bg-white/[0.03] rounded-lg p-2.5">
                       <span className="text-muted block mb-1">Size</span>
-                      <div className="font-mono text-buy text-sm font-bold md:text-xs md:font-semibold">{setup.kellyPercent}%</div>
+                      <div className={cn("font-mono text-sm font-bold md:text-xs md:font-semibold", setup.belowThreshold ? "text-monitor" : "text-buy")}>
+                        {setup.kellyPercent}%
+                        {setup.belowThreshold && <span className="text-[9px] text-monitor/60 block">reduced</span>}
+                      </div>
                     </div>
                   </div>
                   {setup.earningsWarning && (
@@ -413,7 +424,7 @@ function PickCard({
                 </>
               ) : (
                 <div className="bg-monitor/10 border border-monitor/20 rounded-xl p-3 text-sm text-monitor">
-                  R:R below minimum threshold — trade setup not generated. Consider watching this stock for a better entry.
+                  Trade setup could not be calculated for this stock. Score-based analysis is still valid above.
                 </div>
               )}
 
