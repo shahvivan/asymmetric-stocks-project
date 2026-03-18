@@ -60,6 +60,8 @@ interface AppActions {
   refreshScreener: () => void;
   isRefreshing: boolean;
   resetAllData: () => void;
+  searchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
 }
 
 const AppContext = createContext<(AppState & AppActions) | null>(null);
@@ -101,6 +103,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [refreshCounter, setRefreshCounter] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   // Hydrate from localStorage on mount
   useEffect(() => {
@@ -269,6 +272,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           selectedStock, setSelectedStock, finnhubConnected, realtimePrices,
           refreshScreener, isRefreshing,
           resetAllData,
+          searchOpen, setSearchOpen,
         }}
       >
         <ScreenerDataLoader setDataSource={setDataSource} refreshCounter={refreshCounter} setIsRefreshing={setIsRefreshing} />

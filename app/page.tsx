@@ -122,7 +122,7 @@ export default function TerminalPage() {
                   className={`mobile-panel-tab ${mobileTab === tab ? "active" : ""}`}
                   onClick={() => setMobileTab(tab)}
                 >
-                  {tab === "chart" ? "📈 Chart" : tab === "news" ? "📰 News" : tab === "ai" ? "🧠 AI" : "📊 Details"}
+                  {tab === "chart" ? "Chart" : tab === "news" ? "News" : tab === "ai" ? "AI" : "Details"}
                 </button>
               ))}
             </div>

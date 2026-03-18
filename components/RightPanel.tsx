@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/app/providers";
 import { FinnhubFundamentals } from "@/lib/types";
-import { formatLargeNumber } from "@/lib/utils";
+import { formatLargeNumber, cn } from "@/lib/utils";
 import SetupPrompt from "./SetupPrompt";
 import CompanyLogo from "./CompanyLogo";
 
@@ -438,12 +438,18 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
               </div>
             )}
 
-            {/* Quick Questions */}
-            <div className="flex flex-wrap gap-1.5 mb-4">
+            {/* Quick Questions -- wrap on desktop, horizontal scroll on mobile */}
+            <div className={cn(
+              "flex gap-1.5 mb-4",
+              mobile ? "overflow-x-auto pb-1" : "flex-wrap"
+            )} style={mobile ? { scrollbarWidth: "none", WebkitOverflowScrolling: "touch" } as React.CSSProperties : undefined}>
               {QUICK_QUESTIONS.map((q) => (
                 <button
                   key={q}
-                  className="group bg-white/[0.04] border border-white/[0.06] rounded-full px-3 py-1.5 text-xs text-[var(--t-low)] hover:bg-white/[0.08] hover:text-white hover:border-purple-500/30 transition-all duration-150 disabled:opacity-40 disabled:cursor-default"
+                  className={cn(
+                    "group bg-white/[0.04] border border-white/[0.06] rounded-full px-3 py-1.5 text-xs text-[var(--t-low)] hover:bg-white/[0.08] hover:text-white hover:border-purple-500/30 transition-all duration-150 disabled:opacity-40 disabled:cursor-default",
+                    mobile && "flex-shrink-0 whitespace-nowrap"
+                  )}
                   onClick={() => sendMessage(q)}
                   disabled={aiLoading}
                 >
@@ -469,7 +475,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
                     className={msg.role === "user" ? "flex justify-end" : "flex justify-start"}
                   >
                     {msg.role === "user" ? (
-                      <div className="bg-[var(--blue-bg)] text-white rounded-2xl rounded-br-md px-4 py-2.5 ml-8 text-[13px] leading-relaxed max-w-[90%]">
+                      <div className={cn("bg-[var(--blue-bg)] text-white rounded-2xl rounded-br-md px-4 py-2.5 ml-8 leading-relaxed max-w-[90%]", mobile ? "text-sm" : "text-[13px]")}>
                         {msg.content}
                       </div>
                     ) : (
@@ -495,8 +501,18 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
-            <div className="mt-3 flex-shrink-0">
+            {/* Input Area -- fixed at bottom on mobile, inline on desktop */}
+            <div className={cn(
+              "flex-shrink-0",
+              mobile
+                ? "fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-4 border-t border-white/[0.08]"
+                : "mt-3"
+            )} style={mobile ? {
+              background: "rgba(11,14,20,0.85)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+            } : undefined}>
               <div className="flex items-center gap-1 bg-white/[0.06] border border-white/[0.10] rounded-xl overflow-hidden focus-within:border-white/[0.16] transition-colors duration-150">
                 <input
                   className="bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none h-11 px-4 text-sm flex-1 text-white placeholder:text-[var(--t-low)]"
@@ -505,6 +521,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !aiLoading && sendMessage(aiInput)}
                   disabled={aiLoading}
+                  style={{ fontSize: "16px" }}
                 />
                 <button
                   className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-150 mr-0.5 shrink-0 ${
@@ -515,13 +532,14 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
                   onClick={() => sendMessage(aiInput)}
                   disabled={aiLoading || !aiInput.trim()}
                 >
-                  {/* Arrow up icon */}
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 19V5M5 12l7-7 7 7" />
                   </svg>
                 </button>
               </div>
             </div>
+            {/* Spacer for fixed input on mobile */}
+            {mobile && <div className="h-[80px]" />}
           </>
         ) : (
           <div style={{ padding: "var(--sp-3)" }}>

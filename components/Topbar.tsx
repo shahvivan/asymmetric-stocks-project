@@ -55,9 +55,21 @@ function isMarketOpen(): boolean {
 export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: TopbarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { settings, screenerData } = useApp();
+  const { settings, screenerData, searchOpen, setSearchOpen } = useApp();
   const [query, setQuery] = useState("");
-  const [showOverlay, setShowOverlay] = useState(false);
+  const [showOverlay, setShowOverlayState] = useState(false);
+
+  // Sync with shared searchOpen state (mobile Nav triggers this)
+  useEffect(() => {
+    if (searchOpen && !showOverlay) {
+      setShowOverlayState(true);
+    }
+  }, [searchOpen, showOverlay]);
+
+  const setShowOverlay = useCallback((v: boolean) => {
+    setShowOverlayState(v);
+    if (!v) setSearchOpen(false);
+  }, [setSearchOpen]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [marketOpen, setMarketOpen] = useState(false);
   const modalInputRef = useRef<HTMLInputElement>(null);

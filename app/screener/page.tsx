@@ -7,9 +7,12 @@ import { SECTORS } from "@/lib/constants";
 import { formatPrice, formatPercent, cn } from "@/lib/utils";
 import AsymmetryBar from "@/components/AsymmetryBar";
 import StockDrawer from "@/components/StockDrawer";
+import CompanyLogo from "@/components/CompanyLogo";
 import { Button } from "@/components/ui/Button";
 import { SignalBadge } from "@/components/ui/Badge";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
+import type { EnrichedStock } from "@/lib/types";
 
 /* ─── Screener Explainer Modal ─── */
 function ScreenerExplainer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -297,115 +300,232 @@ export default function ScreenerPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table (Desktop) + Cards (Mobile) */}
       {screenerData.length === 0 ? (
         <SkeletonTable rows={15} />
       ) : (
-        <div
-          className="bg-surface/30 border border-white/[0.06] rounded-xl overflow-hidden"
-        >
-          <div
-            className="overflow-x-auto relative md:max-h-[calc(100vh-280px)] md:overflow-y-auto"
-            style={{ WebkitOverflowScrolling: "touch" }}
-          >
-            <table className="w-full text-xs md:text-sm md:min-w-0">
-              <thead>
-                <tr className="bg-white/[0.02] text-[10px] md:text-[11px] text-muted uppercase tracking-wider font-medium sticky-thead">
-                  {([
-                    ["ticker", "Ticker"],
-                    ["price", "Price"],
-                    ["changePercent", "Chg%"],
-                    ["asymmetryScore", "Score"],
-                    ["rsi", "RSI"],
-                    ["pctFromHigh", "% High"],
-                    ["volumeRatio", "Vol"],
-                    ["momentum", "Mom"],
-                  ] as [SortKey, string][]).map(([key, label]) => (
-                    <th
-                      key={key}
-                      onClick={() => handleSort(key)}
-                      className={cn(
-                        "px-4 md:px-5 py-3 md:py-3.5 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap border-b border-white/[0.04]",
-                        (key === "rsi" || key === "pctFromHigh" || key === "volumeRatio" || key === "momentum") && "hidden md:table-cell"
-                      )}
-                    >
-                      <span className="inline-flex items-center gap-1">
-                        {label}
-                        {sortKey === key && (
-                          <span className="text-white/40">{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>
-                        )}
-                      </span>
-                    </th>
-                  ))}
-                  <th className="px-4 md:px-5 py-3 md:py-3.5 text-left border-b border-white/[0.04]">Signal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayStocks.map((stock, index) => (
-                  <tr
-                    key={stock.ticker}
-                    onClick={() => setSelectedStock({ ticker: stock.ticker, name: stock.name })}
-                    className={cn(
-                      "border-b border-white/[0.04] last:border-b-0 transition-all cursor-pointer",
-                      "hover:bg-white/[0.02]",
-                      "border-l-2 border-l-transparent",
-                      getSignalAccent(stock.signal),
-                      index < 15 && "animate-fade-up"
-                    )}
-                    style={index < 15 ? { animationDelay: `${index * 30}ms` } : undefined}
-                  >
-                    <td className="px-4 md:px-5 py-3.5 font-mono font-bold text-white text-sm md:text-base">
-                      {stock.ticker}
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5 font-mono text-white/80">
-                      {formatPrice(stock.price)}
-                    </td>
-                    <td className={cn(
-                      "px-4 md:px-5 py-3.5 font-mono font-medium",
-                      stock.changePercent >= 0 ? "text-profit" : "text-sell"
-                    )}>
-                      {formatPercent(stock.changePercent)}
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5 min-w-[140px] md:min-w-[180px]">
-                      <AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" />
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
-                      {stock.rsi !== null ? stock.rsi.toFixed(1) : "..."}
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
-                      {stock.pctFromHigh.toFixed(1)}%
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
-                      {stock.volumeRatio.toFixed(1)}x
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
-                      {stock.momentum !== null ? stock.momentum.toFixed(2) : "..."}
-                    </td>
-                    <td className="px-4 md:px-5 py-3.5">
-                      <SignalBadge signal={stock.signal} size="sm" />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile: Expandable Cards */}
+          <div className="md:hidden space-y-3">
             {displayStocks.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 px-4">
-                <div className="w-12 h-12 rounded-full bg-white/[0.04] flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                  </svg>
-                </div>
+              <div className="flex flex-col items-center justify-center py-16 px-4">
                 <p className="text-sm text-muted font-medium mb-1">No stocks match your filters</p>
                 <p className="text-xs text-muted-2">Try adjusting the sector or lowering the minimum score</p>
               </div>
             )}
+            {displayStocks.map((stock, index) => (
+              <MobileScreenerCard
+                key={stock.ticker}
+                stock={stock}
+                index={index}
+                onViewFull={() => setSelectedStock({ ticker: stock.ticker, name: stock.name })}
+              />
+            ))}
           </div>
-        </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden md:block bg-surface/30 border border-white/[0.06] rounded-xl overflow-hidden">
+            <div
+              className="overflow-x-auto relative md:max-h-[calc(100vh-280px)] md:overflow-y-auto"
+              style={{ WebkitOverflowScrolling: "touch" }}
+            >
+              <table className="w-full text-sm min-w-0">
+                <thead>
+                  <tr className="bg-white/[0.02] text-[11px] text-muted uppercase tracking-wider font-medium sticky-thead">
+                    {([
+                      ["ticker", "Ticker"],
+                      ["price", "Price"],
+                      ["changePercent", "Chg%"],
+                      ["asymmetryScore", "Score"],
+                      ["rsi", "RSI"],
+                      ["pctFromHigh", "% High"],
+                      ["volumeRatio", "Vol"],
+                      ["momentum", "Mom"],
+                    ] as [SortKey, string][]).map(([key, label]) => (
+                      <th
+                        key={key}
+                        onClick={() => handleSort(key)}
+                        className="px-5 py-3.5 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap border-b border-white/[0.04]"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {label}
+                          {sortKey === key && (
+                            <span className="text-white/40">{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>
+                          )}
+                        </span>
+                      </th>
+                    ))}
+                    <th className="px-5 py-3.5 text-left border-b border-white/[0.04]">Signal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayStocks.map((stock, index) => (
+                    <tr
+                      key={stock.ticker}
+                      onClick={() => setSelectedStock({ ticker: stock.ticker, name: stock.name })}
+                      className={cn(
+                        "border-b border-white/[0.04] last:border-b-0 transition-all cursor-pointer",
+                        "hover:bg-white/[0.02]",
+                        "border-l-2 border-l-transparent",
+                        getSignalAccent(stock.signal),
+                        index < 15 && "animate-fade-up"
+                      )}
+                      style={index < 15 ? { animationDelay: `${index * 30}ms` } : undefined}
+                    >
+                      <td className="px-5 py-3.5 font-mono font-bold text-white text-base">{stock.ticker}</td>
+                      <td className="px-5 py-3.5 font-mono text-white/80">{formatPrice(stock.price)}</td>
+                      <td className={cn("px-5 py-3.5 font-mono font-medium", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>
+                        {formatPercent(stock.changePercent)}
+                      </td>
+                      <td className="px-5 py-3.5 min-w-[180px]">
+                        <AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" />
+                      </td>
+                      <td className="px-5 py-3.5 font-mono text-muted-2">{stock.rsi !== null ? stock.rsi.toFixed(1) : "..."}</td>
+                      <td className="px-5 py-3.5 font-mono text-muted-2">{stock.pctFromHigh.toFixed(1)}%</td>
+                      <td className="px-5 py-3.5 font-mono text-muted-2">{stock.volumeRatio.toFixed(1)}x</td>
+                      <td className="px-5 py-3.5 font-mono text-muted-2">{stock.momentum !== null ? stock.momentum.toFixed(2) : "..."}</td>
+                      <td className="px-5 py-3.5"><SignalBadge signal={stock.signal} size="sm" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {displayStocks.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 px-4">
+                  <p className="text-sm text-muted font-medium mb-1">No stocks match your filters</p>
+                  <p className="text-xs text-muted-2">Try adjusting the sector or lowering the minimum score</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
-      {/* Mobile bottom nav spacer */}
-      <div className="h-20 md:hidden" />
+      <div className="h-4 md:hidden" />
       <StockDrawer stock={selectedEnrichedStock} onClose={() => setSelectedStock(null)} />
       <ScreenerExplainer open={showExplainer} onClose={() => setShowExplainer(false)} />
     </div>
+  );
+}
+
+/* ─── Mobile Screener Card ─── */
+function MobileScreenerCard({
+  stock,
+  index,
+  onViewFull,
+}: {
+  stock: EnrichedStock;
+  index: number;
+  onViewFull: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.03, 0.4), duration: 0.25 }}
+      className="bg-[var(--c-surface)] border border-[var(--b-subtle)] rounded-xl overflow-hidden"
+    >
+      {/* Collapsed card content */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full text-left p-4 transition-colors active:bg-white/[0.02]"
+      >
+        {/* Row 1: Logo + Ticker/Name + Price/Change */}
+        <div className="flex items-center gap-3 mb-3">
+          <CompanyLogo ticker={stock.ticker} name={stock.name} size={32} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-bold text-sm text-white">{stock.ticker}</span>
+              <SignalBadge signal={stock.signal} size="sm" />
+            </div>
+            <p className="text-xs text-[var(--t-low)] truncate">{stock.name}</p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="font-mono font-semibold text-sm text-white">{formatPrice(stock.price)}</div>
+            <div className={cn("font-mono text-xs font-medium", stock.changePercent >= 0 ? "text-[var(--green)]" : "text-[var(--red)]")}>
+              {formatPercent(stock.changePercent)}
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Score bar */}
+        <AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" />
+
+        {/* Expand indicator */}
+        <div className="flex justify-center mt-2">
+          <svg
+            className={cn("w-4 h-4 text-[var(--t-low)] transition-transform duration-200", expanded && "rotate-180")}
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      {/* Expanded details */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 pt-1 border-t border-white/[0.04] space-y-4">
+              {/* Metrics grid */}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "RSI", value: stock.rsi !== null ? stock.rsi.toFixed(1) : "..." },
+                  { label: "Volume", value: `${stock.volumeRatio.toFixed(1)}x` },
+                  { label: "From High", value: `${stock.pctFromHigh.toFixed(1)}%` },
+                  { label: "Momentum", value: stock.momentum !== null ? stock.momentum.toFixed(2) : "..." },
+                  { label: "Beta", value: stock.beta ? stock.beta.toFixed(2) : "N/A" },
+                  { label: "Sector", value: stock.sector || "N/A" },
+                ].map((m) => (
+                  <div key={m.label} className="bg-white/[0.03] rounded-lg p-2.5">
+                    <div className="text-[10px] font-medium text-[var(--t-low)] uppercase tracking-wider">{m.label}</div>
+                    <div className="text-xs font-mono font-semibold text-white mt-0.5">{m.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Trade setup if available */}
+              {stock.tradeSetup && (
+                <div className="bg-white/[0.03] rounded-lg p-3 space-y-2">
+                  <div className="text-[10px] font-semibold text-[var(--t-low)] uppercase tracking-wider">Trade Setup</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[var(--t-low)]">Entry: </span>
+                      <span className="font-mono text-white">{formatPrice(stock.tradeSetup.entryZone[0])} - {formatPrice(stock.tradeSetup.entryZone[1])}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--t-low)]">Target: </span>
+                      <span className="font-mono text-[var(--green)]">{formatPrice(stock.tradeSetup.target)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--t-low)]">Stop: </span>
+                      <span className="font-mono text-[var(--red)]">{formatPrice(stock.tradeSetup.stopLoss)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--t-low)]">Risk:Reward: </span>
+                      <span className="font-mono text-[var(--blue)]">1:{stock.tradeSetup.riskReward.toFixed(1)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* View full analysis button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); onViewFull(); }}
+                className="w-full py-2.5 text-sm font-medium text-[var(--blue)] bg-[var(--blue)]/10 border border-[var(--blue)]/20 rounded-lg transition-colors active:scale-[0.98]"
+              >
+                View Full Analysis
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

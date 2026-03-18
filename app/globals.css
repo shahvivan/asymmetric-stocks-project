@@ -298,6 +298,21 @@ body {
     height: auto;
     overflow: auto;
     -webkit-overflow-scrolling: touch;
+    padding-top: calc(88px + env(safe-area-inset-top, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Subtle mesh gradient background -- mobile only */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    opacity: 0.03;
+    background:
+      radial-gradient(ellipse 80% 50% at 20% 40%, rgba(79,142,247,0.4), transparent),
+      radial-gradient(ellipse 60% 60% at 80% 20%, rgba(167,139,250,0.3), transparent),
+      radial-gradient(ellipse 70% 40% at 60% 80%, rgba(0,212,170,0.3), transparent);
+    pointer-events: none;
   }
 }
 
@@ -1092,10 +1107,47 @@ body {
     border-radius: var(--r-12);
   }
 
-  /* Bottom nav spacer */
+  /* Bottom nav spacer -- replaced by top header */
   .mobile-bottom-spacer {
-    height: 80px;
+    height: 16px;
   }
+
+  /* Hide desktop topbar on mobile -- mobile Nav replaces it */
+  .topbar {
+    display: none !important;
+  }
+
+  /* ── Mobile Visual Polish ── */
+
+  /* Tactile press feedback on all interactive elements */
+  button:active,
+  a:active,
+  [role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+  }
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  input, textarea, select {
+    font-size: max(16px, 1rem);
+  }
+
+  /* Body text readability */
+  p, .text-body, .leading-relaxed {
+    line-height: 1.6;
+  }
+
+  /* Card border consistency */
+  .glass-card,
+  .card-hover {
+    border-color: var(--b-subtle);
+  }
+
+  /* Hide scrollbar on mobile nav scroll */
+  .mobile-nav-scroll::-webkit-scrollbar { display: none; }
 }
 
 /* Extra small screens (phones < 380px) */

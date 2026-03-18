@@ -211,16 +211,17 @@ OUTPUT FORMAT:
 
       {/* Market Indices */}
       <motion.div
-        className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4"
+        className="flex overflow-x-auto gap-3 snap-x snap-mandatory pb-1 md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:pb-0"
+        style={{ scrollbarWidth: "none" }}
         variants={staggerContainer}
         initial="hidden"
         animate="show"
       >
         {indices && indices.length > 0 ? indices.map((idx) => (
           <motion.div key={idx.label} variants={staggerItem}>
-            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 md:p-5 hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-300 group">
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 md:p-5 hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-300 group snap-start flex-shrink-0 w-[140px] md:w-auto">
               <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider mb-1.5">{idx.label}</div>
-              <div className="font-mono text-white font-bold text-xl md:text-2xl tracking-tight">{idx.value.toLocaleString()}</div>
+              <div className="font-mono text-white font-bold text-lg md:text-2xl tracking-tight">{idx.value.toLocaleString()}</div>
               <div
                 className={cn(
                   "font-mono text-xs md:text-sm mt-1 font-semibold",
@@ -422,7 +423,7 @@ OUTPUT FORMAT:
                   variants={staggerItem}
                   className="flex items-center gap-3 md:gap-4 min-w-0"
                 >
-                  <div className="w-28 md:w-36 text-xs text-muted/70 truncate shrink-0">{sector.sector.replace("_", " ")}</div>
+                  <div className="w-32 md:w-36 text-sm md:text-xs text-muted/70 truncate shrink-0">{sector.sector.replace("_", " ")}</div>
                   <div className="flex-1 h-5 md:h-6 bg-white/[0.04] rounded-full overflow-hidden relative min-w-[80px]">
                     <motion.div
                       className={cn(
@@ -503,7 +504,7 @@ OUTPUT FORMAT:
         <SetupPrompt variant="finnhub" size="compact" />
       )}
       {/* Mobile bottom nav spacer */}
-      <div className="h-20 md:hidden" />
+      <div className="h-4 md:hidden" />
     </div>
   );
 }

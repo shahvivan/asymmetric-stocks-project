@@ -270,7 +270,7 @@ export default function PicksPage() {
       )}
 
       {/* Mobile bottom nav spacer */}
-      <div className="h-20 md:hidden" />
+      <div className="h-4 md:hidden" />
     </div>
   );
 }
