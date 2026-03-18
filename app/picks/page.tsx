@@ -42,9 +42,9 @@ export default function PicksPage() {
 
   const picks = useMemo(() => {
     return screenerData
-      .filter((s) => s.asymmetryScore >= 60 && s.tradeSetup)
+      .filter((s) => s.asymmetryScore >= 60)
       .sort((a, b) => b.asymmetryScore - a.asymmetryScore)
-      .slice(0, 10);
+      .slice(0, 5);
   }, [screenerData]);
 
   // Fetch AI narratives for picks
@@ -101,14 +101,22 @@ export default function PicksPage() {
           watchlist: watchlist.map((w) => ({ ticker: w.ticker })), portfolioValue,
         }),
       });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "AI analysis failed" }));
+        toast.error(errData.error || "AI analysis failed");
+        setBriefingLoading(false);
+        return;
+      }
       const data = await res.json();
-      if (!data.error) {
+      if (data.error) {
+        toast.error(data.error);
+      } else {
         const briefingData: AIBriefing = { ...data, generatedAt: Date.now() };
         setBriefing(briefingData);
         save(KEYS.AI_BRIEFING, briefingData);
         toast.success("AI picks updated");
       }
-    } catch { toast.error("AI briefing failed"); }
+    } catch { toast.error("AI briefing failed — check your API key in Settings"); }
     setBriefingLoading(false);
   }, [settings.groqApiKey, positions, screenerData, completedTrades, watchlist, portfolioValue]);
 
@@ -131,7 +139,7 @@ export default function PicksPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Today&apos;s Picks</h1>
           <p className="text-xs text-muted mt-1.5">
-            AI-powered trade recommendations &middot; {picks.length} opportunities found
+            Top 5 stocks ranked by asymmetry score
           </p>
         </div>
         {hasGroqKey && (
@@ -211,8 +219,8 @@ export default function PicksPage() {
       {/* Stock Picks from Screener */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm font-bold text-white">Top Scored Picks</div>
-          <span className="text-xs text-muted">Score 60+ &middot; Sorted by score</span>
+          <div className="text-sm font-bold text-white">Top 5 Picks</div>
+          <span className="text-xs text-muted">Highest scoring stocks from the screener</span>
         </div>
         {picks.length === 0 ? (
           <div className="flex items-center justify-center py-20">
@@ -329,7 +337,7 @@ function PickCard({
   stock: EnrichedStock; expanded: boolean; aiAnalysis: AIStockAnalysis | null;
   onToggle: () => void; onWatchlist: () => void; onFeedback: (thumbsUp: boolean) => void;
 }) {
-  const setup = stock.tradeSetup!;
+  const setup = stock.tradeSetup;
   const whyReasons = generateWhyNarrative(stock);
   const riskReasons = generateRiskNarrative(stock);
 
@@ -352,7 +360,7 @@ function PickCard({
           <span className="font-mono text-sm">{formatPrice(stock.price)}</span>
           <span className={cn("font-mono text-sm", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>{formatPercent(stock.changePercent)}</span>
           <div className="w-20 hidden md:block"><AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" /></div>
-          <span className="text-xs text-muted hidden md:inline">1:{setup.riskReward.toFixed(1)}</span>
+          {setup && <span className="text-xs text-muted hidden md:inline">1:{setup.riskReward.toFixed(1)}</span>}
           <span className="text-muted text-xs">{expanded ? "\u25B2" : "\u25BC"}</span>
         </div>
       </div>
@@ -369,37 +377,43 @@ function PickCard({
             <div className="border-t border-white/[0.06] mx-4" />
             <div className="p-3 md:p-4 pt-4 md:pt-5 space-y-4">
               {/* Trade Setup Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-                <div className="bg-white/[0.03] rounded-lg p-2.5">
-                  <span className="text-muted block mb-1">Entry</span>
-                  <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">{formatPrice(setup.entryZone[0])}&ndash;{formatPrice(setup.entryZone[1])}</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5">
-                  <span className="text-muted block mb-1">Target</span>
-                  <div className="font-mono text-profit text-sm font-bold md:text-xs md:font-semibold">{formatPrice(setup.target)}</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5">
-                  <span className="text-muted block mb-1">Stop</span>
-                  <div className="font-mono text-sell text-sm font-bold md:text-xs md:font-semibold">{formatPrice(setup.stopLoss)}</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5">
-                  <span className="text-muted block mb-1">Risk:Reward</span>
-                  <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">1:{setup.riskReward.toFixed(1)}</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5">
-                  <span className="text-muted block mb-1">Hold</span>
-                  <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">{setup.holdWindow[0]}&ndash;{setup.holdWindow[1]}d</div>
-                </div>
-                <div className="bg-white/[0.03] rounded-lg p-2.5">
-                  <span className="text-muted block mb-1">Size</span>
-                  <div className="font-mono text-buy text-sm font-bold md:text-xs md:font-semibold">{setup.kellyPercent}%</div>
-                </div>
-              </div>
-
-              {/* Earnings Warning */}
-              {setup.earningsWarning && (
-                <div className="bg-monitor/10 border border-monitor/20 rounded-xl p-3 text-sm text-monitor font-medium">
-                  {setup.earningsWarning}
+              {setup ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-white/[0.03] rounded-lg p-2.5">
+                      <span className="text-muted block mb-1">Entry</span>
+                      <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">{formatPrice(setup.entryZone[0])}&ndash;{formatPrice(setup.entryZone[1])}</div>
+                    </div>
+                    <div className="bg-white/[0.03] rounded-lg p-2.5">
+                      <span className="text-muted block mb-1">Target</span>
+                      <div className="font-mono text-profit text-sm font-bold md:text-xs md:font-semibold">{formatPrice(setup.target)}</div>
+                    </div>
+                    <div className="bg-white/[0.03] rounded-lg p-2.5">
+                      <span className="text-muted block mb-1">Stop</span>
+                      <div className="font-mono text-sell text-sm font-bold md:text-xs md:font-semibold">{formatPrice(setup.stopLoss)}</div>
+                    </div>
+                    <div className="bg-white/[0.03] rounded-lg p-2.5">
+                      <span className="text-muted block mb-1">Risk:Reward</span>
+                      <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">1:{setup.riskReward.toFixed(1)}</div>
+                    </div>
+                    <div className="bg-white/[0.03] rounded-lg p-2.5">
+                      <span className="text-muted block mb-1">Hold</span>
+                      <div className="font-mono text-white text-sm font-bold md:text-xs md:font-semibold">{setup.holdWindow[0]}&ndash;{setup.holdWindow[1]}d</div>
+                    </div>
+                    <div className="bg-white/[0.03] rounded-lg p-2.5">
+                      <span className="text-muted block mb-1">Size</span>
+                      <div className="font-mono text-buy text-sm font-bold md:text-xs md:font-semibold">{setup.kellyPercent}%</div>
+                    </div>
+                  </div>
+                  {setup.earningsWarning && (
+                    <div className="bg-monitor/10 border border-monitor/20 rounded-xl p-3 text-sm text-monitor font-medium">
+                      {setup.earningsWarning}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="bg-monitor/10 border border-monitor/20 rounded-xl p-3 text-sm text-monitor">
+                  R:R below minimum threshold — trade setup not generated. Consider watching this stock for a better entry.
                 </div>
               )}
 
@@ -425,9 +439,9 @@ function PickCard({
                   : "bg-monitor/10 border border-monitor/20 text-monitor"
               )}>
                 {stock.signal === "STRONG BUY"
-                  ? `Strong setup \u2014 ${stock.ticker} has ${whyReasons.length} bullish factors with a 1:${setup.riskReward.toFixed(1)} risk-to-reward. ${aiAnalysis?.verdict === "BUY" ? "AI confirms: BUY." : "Consider entering at the suggested entry zone."}`
+                  ? `Strong setup \u2014 ${stock.ticker} has ${whyReasons.length} bullish factors${setup ? ` with a 1:${setup.riskReward.toFixed(1)} risk-to-reward` : ""}. ${aiAnalysis?.verdict === "BUY" ? "AI confirms: BUY." : "Consider entering at the suggested entry zone."}`
                   : stock.signal === "BUY"
-                  ? `${stock.ticker} rated BUY \u2014 ${whyReasons.length} bullish factors support the setup with 1:${setup.riskReward.toFixed(1)} risk-to-reward. ${aiAnalysis?.verdict === "BUY" ? "AI agrees." : "Size conservatively and use the stop loss."}`
+                  ? `${stock.ticker} rated BUY \u2014 ${whyReasons.length} bullish factors support the setup${setup ? ` with 1:${setup.riskReward.toFixed(1)} risk-to-reward` : ""}. ${aiAnalysis?.verdict === "BUY" ? "AI agrees." : "Size conservatively and use the stop loss."}`
                   : `${stock.ticker} is on the watchlist \u2014 score of ${stock.asymmetryScore} shows potential but ${riskReasons.length} risk${riskReasons.length !== 1 ? "s" : ""} need monitoring. Wait for a clearer entry.`
                 }
               </div>

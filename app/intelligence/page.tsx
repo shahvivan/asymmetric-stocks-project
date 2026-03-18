@@ -158,20 +158,32 @@ OUTPUT FORMAT:
         }),
       });
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Market briefing failed" }));
+        toast.error(errData.error || "Market briefing failed");
+        setBriefingLoading(false);
+        return;
+      }
       const data = await res.json();
-      if (data.content) {
+      if (data.error) {
+        toast.error(data.error);
+      } else if (data.content) {
         try {
           const match = data.content.match(/\{[\s\S]*\}/);
           if (match) {
             setMarketBriefing(JSON.parse(match[0]));
             toast.success("Market briefing updated");
+          } else {
+            toast.error("AI returned unexpected format — try again");
           }
         } catch {
-          toast.error("Failed to parse market briefing");
+          toast.error("Failed to parse market briefing — try again");
         }
+      } else {
+        toast.error("No response from AI — check your API key in Settings");
       }
     } catch {
-      toast.error("Market briefing failed");
+      toast.error("Market briefing failed — check your API key in Settings");
     }
     setBriefingLoading(false);
   }, [settings.groqApiKey, sectorPerformance, indices, marketNews, breadth]);
@@ -189,9 +201,8 @@ OUTPUT FORMAT:
             onClick={fetchMarketBriefing}
             disabled={briefingLoading || screenerData.length === 0}
             loading={briefingLoading}
-            variant="secondary"
-            size="md"
-            className="bg-buy/10 text-buy border-buy/20 hover:bg-buy/20"
+            variant="primary"
+            size="sm"
           >
             {briefingLoading ? "Analyzing..." : "Get Market Briefing"}
           </Button>

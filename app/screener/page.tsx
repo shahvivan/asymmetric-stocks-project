@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useApp } from "../providers";
 import { SkeletonTable } from "@/components/Skeleton";
 import { SECTORS } from "@/lib/constants";
@@ -10,6 +10,150 @@ import StockDrawer from "@/components/StockDrawer";
 import { Button } from "@/components/ui/Button";
 import { SignalBadge } from "@/components/ui/Badge";
 import toast from "react-hot-toast";
+
+/* ─── Screener Explainer Modal ─── */
+function ScreenerExplainer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const handleEsc = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (open) {
+      document.addEventListener("keydown", handleEsc);
+      document.body.style.overflow = "hidden";
+    }
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "";
+    };
+  }, [open, handleEsc]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative bg-[#0f1219] border border-white/[0.08] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto mx-4 p-6 md:p-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.06] hover:bg-white/10 text-muted hover:text-white transition-colors"
+        >
+          ✕
+        </button>
+
+        <h2 className="text-xl font-bold text-white mb-1">How Does the Screener Work?</h2>
+        <p className="text-sm text-muted mb-6">Understanding the asymmetry score and trade signals</p>
+
+        {/* Section 1: The Score */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-buy uppercase tracking-wider mb-3">The Score (0–100)</h3>
+          <p className="text-sm text-muted-2 mb-4">
+            Every stock is scored across 10 independent factors. Each factor is weighted by its predictive importance. The total always adds up to 100 maximum points.
+          </p>
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-white/[0.03] text-[10px] uppercase tracking-wider text-muted">
+                  <th className="px-3 py-2 text-left">Factor</th>
+                  <th className="px-3 py-2 text-center">Max Pts</th>
+                  <th className="px-3 py-2 text-left">What It Measures</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04]">
+                {[
+                  ["Volume", "16", "Is trading activity above average?"],
+                  ["Breakout Proximity", "12", "How close to 52-week high?"],
+                  ["Trend Position", "12", "Price above key moving averages?"],
+                  ["Momentum", "12", "Is price acceleration increasing?"],
+                  ["Relative Strength", "10", "Outperforming the S&P 500?"],
+                  ["DeMark Sequential", "10", "TD Buy/Sell setup signals active?"],
+                  ["Volume Profile", "8", "Clear path above with no resistance?"],
+                  ["RSI Zone", "8", "In the ideal momentum zone (40–65)?"],
+                  ["Catalysts", "7", "Upcoming earnings or macro events?"],
+                  ["IV Percentile", "5", "Is implied volatility low?"],
+                ].map(([factor, pts, desc]) => (
+                  <tr key={factor} className="text-white/70">
+                    <td className="px-3 py-2 font-medium text-white/90">{factor}</td>
+                    <td className="px-3 py-2 text-center font-mono text-buy">{pts}</td>
+                    <td className="px-3 py-2 text-muted-2">{desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Section 2: The Signal */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-profit uppercase tracking-wider mb-3">The Signal</h3>
+          <p className="text-sm text-muted-2 mb-3">
+            A high score alone isn&apos;t enough. The screener requires multiple independent signal categories to confirm before issuing a buy rating.
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-start gap-3 bg-profit/5 border border-profit/20 rounded-lg p-3">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-profit/20 text-profit whitespace-nowrap mt-0.5">STRONG BUY</span>
+              <span className="text-sm text-white/70">Score ≥ 75 <span className="text-muted-2">AND</span> 4+ out of 8 independent signal categories confirm</span>
+            </div>
+            <div className="flex items-start gap-3 bg-buy/5 border border-buy/20 rounded-lg p-3">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-buy/20 text-buy whitespace-nowrap mt-0.5">BUY</span>
+              <span className="text-sm text-white/70">Score ≥ 60 <span className="text-muted-2">AND</span> 3+ signal categories confirm</span>
+            </div>
+            <div className="flex items-start gap-3 bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-muted whitespace-nowrap mt-0.5">WATCH</span>
+              <span className="text-sm text-white/70">Score below threshold or insufficient confirmation from independent signals</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Example */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-monitor uppercase tracking-wider mb-3">Example — Stock A Scores 79</h3>
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-4 space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-1 text-xs">
+              {[
+                ["Volume 2.3x avg", "+16 pts", true],
+                ["Near 52-week high", "+12 pts", true],
+                ["Above SMA20 > SMA50", "+12 pts", true],
+                ["Strong momentum", "+9 pts", true],
+                ["Outperforms SPY", "+8 pts", true],
+                ["TD Buy 9 active", "+8 pts", true],
+                ["Zero overhead", "+8 pts", true],
+                ["RSI at 58 (ideal)", "+6 pts", true],
+                ["No upcoming catalyst", "+0 pts", false],
+                ["Normal IV", "+0 pts", false],
+              ].map(([label, pts, active]) => (
+                <div key={label as string} className={cn("flex justify-between py-1 px-2 rounded", active ? "text-white/80" : "text-muted-2")}>
+                  <span>{label}</span>
+                  <span className={cn("font-mono", active ? "text-profit" : "text-muted-2")}>{pts}</span>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-white/[0.06] pt-2 mt-2 flex justify-between items-center">
+              <span className="font-semibold text-white">Total: 79/100</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-profit/20 text-profit">STRONG BUY — 6/8 signals confirmed</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Trade Setup */}
+        <div className="mb-2">
+          <h3 className="text-sm font-semibold text-purple-400 uppercase tracking-wider mb-3">Trade Setup</h3>
+          <div className="text-sm text-muted-2 space-y-2">
+            <p><span className="text-white/80 font-medium">Entry, target, and stop loss</span> are calculated using ATR (Average True Range) — this automatically adapts to each stock&apos;s volatility.</p>
+            <p><span className="text-white/80 font-medium">Risk:Reward</span> must be at least 1:1.5 for a trade setup to be generated. This means for every $1 risked, the expected reward is at least $1.50.</p>
+            <p><span className="text-white/80 font-medium">Position size</span> uses the Kelly Criterion scaled by score — higher-scoring stocks get larger allocations, capped at 35%.</p>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-muted-2 italic mt-4">Not financial advice. Always do your own research. Past performance does not guarantee future results.</p>
+      </div>
+    </div>
+  );
+}
 
 type SortKey = "ticker" | "price" | "asymmetryScore" | "rsi" | "pctFromHigh" | "volumeRatio" | "changePercent" | "momentum";
 type SortDir = "asc" | "desc";
@@ -38,6 +182,7 @@ export default function ScreenerPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [sectorFilter, setSectorFilter] = useState<string>("All");
   const [minScore, setMinScore] = useState(0);
+  const [showExplainer, setShowExplainer] = useState(false);
 
   const selectedEnrichedStock = useMemo(() => {
     if (!selectedStock) return null;
@@ -93,21 +238,30 @@ export default function ScreenerPage() {
             )}
           </p>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => {
-            if (justRefreshed) return;
-            refreshScreener();
-            setJustRefreshed(true);
-            toast.success("Refreshing screener data...");
-            setTimeout(() => setJustRefreshed(false), 60000);
-          }}
-          disabled={isRefreshing || justRefreshed}
-          loading={isRefreshing}
-        >
-          {isRefreshing ? "Refreshing..." : justRefreshed ? "Up to date" : "Refresh Now"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowExplainer(true)}
+          >
+            How does it screen?
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              if (justRefreshed) return;
+              refreshScreener();
+              setJustRefreshed(true);
+              toast.success("Refreshing screener data...");
+              setTimeout(() => setJustRefreshed(false), 60000);
+            }}
+            disabled={isRefreshing || justRefreshed}
+            loading={isRefreshing}
+          >
+            {isRefreshing ? "Refreshing..." : justRefreshed ? "Up to date" : "Refresh Now"}
+          </Button>
+        </div>
       </div>
 
       {/* Controls bar — glass effect */}
@@ -251,6 +405,7 @@ export default function ScreenerPage() {
       {/* Mobile bottom nav spacer */}
       <div className="h-20 md:hidden" />
       <StockDrawer stock={selectedEnrichedStock} onClose={() => setSelectedStock(null)} />
+      <ScreenerExplainer open={showExplainer} onClose={() => setShowExplainer(false)} />
     </div>
   );
 }
