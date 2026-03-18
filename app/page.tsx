@@ -166,7 +166,7 @@ function MobileContent({
         </div>
       )}
       {tab === "ai" && (
-        <div style={{ overflowY: "auto" }}>
+        <div className="mobile-ai-container">
           <RightPanel ticker={ticker} name={name} mobile aiOnly />
         </div>
       )}

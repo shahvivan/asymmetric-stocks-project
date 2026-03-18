@@ -147,10 +147,8 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const prevTicker = useRef(ticker);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const stock = screenerData.find((s) => s.ticker === ticker);
 
@@ -175,27 +173,6 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  // Mobile keyboard handling — shift input above keyboard using visualViewport API
-  useEffect(() => {
-    if (!mobile) return;
-    const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    if (!vv) return;
-
-    const onResize = () => {
-      const offsetFromBottom = window.innerHeight - vv.height - vv.offsetTop;
-      setKeyboardOffset(Math.max(0, offsetFromBottom));
-      // Scroll messages to bottom when keyboard opens
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    };
-
-    vv.addEventListener("resize", onResize);
-    vv.addEventListener("scroll", onResize);
-    return () => {
-      vv.removeEventListener("resize", onResize);
-      vv.removeEventListener("scroll", onResize);
-    };
-  }, [mobile]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!settings.groqApiKey || !text.trim()) return;
@@ -614,11 +591,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}
             </div>
 
             {/* Messages */}
-            <div
-              ref={messagesContainerRef}
-              className="ai-messages"
-              style={mobile ? { paddingBottom: keyboardOffset > 0 ? `${keyboardOffset + 80}px` : "100px" } : undefined}
-            >
+            <div className={cn("ai-messages", mobile && "flex-1")}>
               {messages.length === 0 && (
                 <div className="flex items-center justify-center py-10">
                   <span className="text-sm text-[var(--t-ghost)]">Ask anything about {ticker}</span>
@@ -660,26 +633,18 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area -- fixed at bottom on mobile (shifts with keyboard), inline on desktop */}
+            {/* Input Area -- sticky at bottom on mobile (iOS keyboard safe), inline on desktop */}
             <div className={cn(
               "flex-shrink-0",
               mobile
-                ? "fixed left-0 right-0 z-40 px-4 pt-3 pb-4 border-t border-white/[0.08]"
+                ? "sticky bottom-0 z-30 -mx-4 px-4 pt-3 pb-4 border-t border-white/[0.08]"
                 : "mt-3"
             )} style={mobile ? {
-              bottom: `${keyboardOffset}px`,
-              background: "rgba(11,14,20,0.92)",
+              background: "rgba(11,14,20,0.95)",
               backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
-              paddingBottom: keyboardOffset > 0 ? "12px" : "calc(16px + env(safe-area-inset-bottom, 0px))",
-              transition: "bottom 0.15s ease-out",
+              paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
             } : undefined}>
-              {/* Show what user is typing — preview above input on mobile when keyboard is open */}
-              {mobile && keyboardOffset > 0 && aiInput.trim() && (
-                <div className="mb-2 px-1 text-xs text-white/40 truncate">
-                  Typing: <span className="text-white/70">{aiInput}</span>
-                </div>
-              )}
               <div className="flex items-center gap-1 bg-white/[0.08] border border-white/[0.12] rounded-xl overflow-hidden focus-within:border-purple-500/30 transition-colors duration-150">
                 <input
                   ref={inputRef}
@@ -688,6 +653,12 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !aiLoading && sendMessage(aiInput)}
+                  onFocus={() => {
+                    if (mobile) {
+                      // Let iOS keyboard animation complete, then scroll input into view
+                      setTimeout(() => inputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+                    }
+                  }}
                   disabled={aiLoading}
                   style={{ fontSize: "16px" }}
                   autoComplete="off"
@@ -708,8 +679,6 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}
                 </button>
               </div>
             </div>
-            {/* Spacer for fixed input on mobile */}
-            {mobile && <div className="h-[100px]" />}
           </>
         ) : (
           <div style={{ padding: "var(--sp-3)" }}>

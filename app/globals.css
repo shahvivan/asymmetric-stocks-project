@@ -1097,9 +1097,27 @@ body {
     background: var(--c-hover);
   }
 
+  /* AI chat — full-height flex layout for native keyboard handling */
+  .mobile-ai-container {
+    min-height: calc(100dvh - 220px);
+    display: flex;
+    flex-direction: column;
+  }
+  .mobile-ai-container .right-panel.mobile-right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .mobile-ai-container .right-panel-section:last-child {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
   /* AI section in mobile tabs */
   .ai-messages {
     gap: var(--sp-3);
+    flex: 1;
   }
 
   /* Cards — modern border radius */
