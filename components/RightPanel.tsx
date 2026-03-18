@@ -147,7 +147,10 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const prevTicker = useRef(ticker);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const stock = screenerData.find((s) => s.ticker === ticker);
 
@@ -173,6 +176,27 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Mobile keyboard handling — shift input above keyboard using visualViewport API
+  useEffect(() => {
+    if (!mobile) return;
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+
+    const onResize = () => {
+      const offsetFromBottom = window.innerHeight - vv.height - vv.offsetTop;
+      setKeyboardOffset(Math.max(0, offsetFromBottom));
+      // Scroll messages to bottom when keyboard opens
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+    };
+
+    vv.addEventListener("resize", onResize);
+    vv.addEventListener("scroll", onResize);
+    return () => {
+      vv.removeEventListener("resize", onResize);
+      vv.removeEventListener("scroll", onResize);
+    };
+  }, [mobile]);
+
   const sendMessage = useCallback(async (text: string) => {
     if (!settings.groqApiKey || !text.trim()) return;
 
@@ -183,20 +207,58 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
 
     try {
       // Build rich context for AI
+      const now = new Date();
       let context = `Stock: ${ticker}`;
       let breakdownText = "";
       let tradeSetupText = "";
 
       if (stock) {
-        context = [
-          `STOCK DATA:`,
+        const lines = [
+          `STOCK DATA (LIVE):`,
           `- ${stock.ticker} (${stock.name}), Sector: ${stock.sector}`,
-          `- Price: $${stock.price.toFixed(2)}, Today: ${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`,
+          `- Current Price: $${stock.price.toFixed(2)} (as of right now)`,
+          `- Today's Change: ${stock.changePercent >= 0 ? "+" : ""}${stock.changePercent.toFixed(2)}%`,
           `- 52W Range: $${stock.low52w.toFixed(2)} - $${stock.high52w.toFixed(2)} (${stock.pctFromHigh.toFixed(1)}% from high)`,
           `- Volume: ${stock.volumeRatio.toFixed(1)}x average`,
           `- RSI(14): ${stock.rsi !== null ? stock.rsi.toFixed(1) : "N/A"}`,
-          `- Momentum: ${stock.momentum !== null ? stock.momentum.toFixed(2) : "N/A"}`,
-        ].join("\n");
+          `- Momentum (ROC): ${stock.momentum !== null ? stock.momentum.toFixed(2) : "N/A"}`,
+        ];
+        // Trend from score breakdown
+        if (stock.breakdown?.trend) {
+          lines.push(`- Trend: ${stock.breakdown.trend.reason} (+${stock.breakdown.trend.points} pts)`);
+        }
+        if (stock.demark) {
+          const parts: string[] = [];
+          if (stock.demark.buySetup) parts.push(`Buy Setup ${stock.demark.buySetup}${stock.demark.buySetup9 ? " (TD9 triggered)" : ""}`);
+          if (stock.demark.sellSetup) parts.push(`Sell Setup ${stock.demark.sellSetup}${stock.demark.sellSetup9 ? " (TD9 triggered)" : ""}`);
+          if (stock.demark.buyCountdown) parts.push(`Buy Countdown ${stock.demark.buyCountdown}${stock.demark.buyCountdown13 ? " (TD13 complete)" : ""}`);
+          if (stock.demark.sellCountdown) parts.push(`Sell Countdown ${stock.demark.sellCountdown}${stock.demark.sellCountdown13 ? " (TD13 complete)" : ""}`);
+          if (stock.demark.activeSignal) parts.push(`Active Signal: ${stock.demark.activeSignal}`);
+          lines.push(`- DeMark Sequential: ${parts.length > 0 ? parts.join(", ") : "No active setup"}`);
+        }
+        if (stock.expectedMove) {
+          lines.push(`- Expected Move (HV30): +/-${stock.expectedMove.expectedMovePercent.toFixed(1)}% ($${stock.expectedMove.expectedMoveAbsolute.toFixed(2)})`);
+        }
+        if (stock.volumeProfile) {
+          const vp = stock.volumeProfile;
+          const vpParts: string[] = [];
+          if (vp.hasZeroOverhead) vpParts.push("ZERO overhead resistance");
+          if (vp.nearestHVNSupport !== null) vpParts.push(`HVN support at $${vp.nearestHVNSupport.toFixed(2)}`);
+          if (vp.nearestLVNAbove !== null) vpParts.push(`LVN gap above at $${vp.nearestLVNAbove.toFixed(2)}`);
+          if (vpParts.length > 0) lines.push(`- Volume Profile: ${vpParts.join(", ")}`);
+        }
+        if (stock.earningsDate) {
+          const earningsInPast = new Date(stock.earningsDate) < now;
+          lines.push(`- Earnings: ${stock.earningsDate} (${earningsInPast ? "ALREADY REPORTED" : `in ${stock.daysToEarnings ?? "?"} days`})`);
+        }
+        // Confluence signals
+        if (stock.confluenceSignals && stock.confluenceSignals.length > 0) {
+          lines.push(`- Confluence Signals (${stock.confluenceCount}/8): ${stock.confluenceSignals.join(", ")}`);
+        }
+        if (stock.marketRegime) {
+          lines.push(`- Market Regime: ${stock.marketRegime.toUpperCase()}`);
+        }
+        context = lines.join("\n");
 
         // Add score breakdown
         if (stock.breakdown) {
@@ -209,7 +271,10 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
         // Add trade setup
         if (stock.tradeSetup) {
           const ts = stock.tradeSetup;
-          tradeSetupText = `\n\nTRADE SETUP:\n- Entry Zone: $${ts.entryZone[0].toFixed(2)} - $${ts.entryZone[1].toFixed(2)}\n- Target: $${ts.target.toFixed(2)} (Risk:Reward 1:${ts.riskReward.toFixed(1)})\n- Stop Loss: $${ts.stopLoss.toFixed(2)}\n- Size: ${ts.kellyPercent}% of portfolio\n- Hold Window: ${ts.holdWindow[0]}-${ts.holdWindow[1]} days`;
+          tradeSetupText = `\n\nTRADE SETUP (computed from live data):\n- Entry Zone: $${ts.entryZone[0].toFixed(2)} - $${ts.entryZone[1].toFixed(2)}\n- Target: $${ts.target.toFixed(2)} (Risk:Reward 1:${ts.riskReward.toFixed(1)})\n- Stop Loss: $${ts.stopLoss.toFixed(2)}\n- Size: ${ts.kellyPercent}% of portfolio\n- Hold Window: ${ts.holdWindow[0]}-${ts.holdWindow[1]} days`;
+          if (ts.earningsWarning) tradeSetupText += `\n- EARNINGS WARNING: ${ts.earningsWarning}`;
+        } else {
+          tradeSetupText = `\n\nTRADE SETUP: No valid trade setup — Risk:Reward ratio below 1:1.5 minimum threshold`;
         }
       }
 
@@ -244,14 +309,24 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
         }
       } catch { /* news is optional context */ }
 
-      const today = new Date().toISOString().split("T")[0];
-      const systemContent = `You are an expert swing trading mentor for a small retail account. Today's date is ${today}.
+      const today = now.toISOString().split("T")[0];
+      const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/New_York" });
+      const marketOpen = now.getUTCDay() >= 1 && now.getUTCDay() <= 5;
+
+      const systemContent = `You are an expert swing trading analyst with LIVE market access. Today is ${today}, ${timeStr} ET.${marketOpen ? " Markets are open." : ""}
+
+CRITICAL: ALL DATA BELOW IS LIVE AND CURRENT AS OF RIGHT NOW. This is real-time data from our trading terminal — prices, RSI, momentum, volume, news, and scores are all fetched live when the user loads the page. You MUST:
+- NEVER say "I need the current price" or "please provide" — YOU ALREADY HAVE IT below
+- NEVER say "I don't have access to live data" — YOU DO, it's provided below
+- NEVER ask the user to check anything — YOU have the latest data
+- ALWAYS make definitive calls using the live data below
+- If earnings have ALREADY happened (date is in the past), treat them as completed events and analyze the market's reaction
 
 TRADER PROFILE:
 - Swing trader (3-20 day holds), small account, Revolut (fractional shares), based in Spain (CET)
 - Goal: aggressive portfolio growth in 2026, intermediate experience
 
-ANALYSIS FRAMEWORK (use for buy/sell/analysis questions):
+ANALYSIS FRAMEWORK:
 1. TREND: Price vs 20/50 SMA? Uptrend or downtrend?
 2. MOMENTUM: Accelerating or decelerating? RSI zone?
 3. CATALYST: Earnings, news, sector rotation?
@@ -263,10 +338,10 @@ RULES:
 - Reference the score breakdown data and agree or explain why you disagree
 - Give specific price levels (entry, target, stop loss) when recommending action
 - For risk questions, list concrete risks with severity (HIGH/MEDIUM/LOW)
-- Use ONLY the provided current data and news — do NOT rely on your training data for prices or events
+- NEVER reference your training data for prices, events, or earnings dates — use ONLY the live data below
 - Give substantive, actionable answers (not just 1-2 sentences)
 
-FORMATTING (important for readability):
+FORMATTING:
 - Use **bold** for key terms, tickers, and action words (BUY, SELL, WAIT)
 - Use numbered lists (1. 2. 3.) for analysis steps
 - Use bullet points (- ) for details within each section
@@ -275,7 +350,9 @@ FORMATTING (important for readability):
 - Keep each section short (2-3 sentences max)
 - Use line breaks generously — never write a wall of text
 
-${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
+=== LIVE MARKET DATA (as of ${timeStr} ET, ${today}) ===
+${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}
+=== END LIVE DATA ===`;
 
       const res = await fetch("/api/ai/chat", {
         method: "POST",
@@ -459,7 +536,11 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
             </div>
 
             {/* Messages */}
-            <div className="ai-messages">
+            <div
+              ref={messagesContainerRef}
+              className="ai-messages"
+              style={mobile ? { paddingBottom: keyboardOffset > 0 ? `${keyboardOffset + 80}px` : "100px" } : undefined}
+            >
               {messages.length === 0 && (
                 <div className="flex items-center justify-center py-10">
                   <span className="text-sm text-[var(--t-ghost)]">Ask anything about {ticker}</span>
@@ -501,33 +582,44 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area -- fixed at bottom on mobile, inline on desktop */}
+            {/* Input Area -- fixed at bottom on mobile (shifts with keyboard), inline on desktop */}
             <div className={cn(
               "flex-shrink-0",
               mobile
-                ? "fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-4 border-t border-white/[0.08]"
+                ? "fixed left-0 right-0 z-40 px-4 pt-3 pb-4 border-t border-white/[0.08]"
                 : "mt-3"
             )} style={mobile ? {
-              background: "rgba(11,14,20,0.85)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              paddingBottom: "calc(16px + env(safe-area-inset-bottom, 0px))",
+              bottom: `${keyboardOffset}px`,
+              background: "rgba(11,14,20,0.92)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              paddingBottom: keyboardOffset > 0 ? "12px" : "calc(16px + env(safe-area-inset-bottom, 0px))",
+              transition: "bottom 0.15s ease-out",
             } : undefined}>
-              <div className="flex items-center gap-1 bg-white/[0.06] border border-white/[0.10] rounded-xl overflow-hidden focus-within:border-white/[0.16] transition-colors duration-150">
+              {/* Show what user is typing — preview above input on mobile when keyboard is open */}
+              {mobile && keyboardOffset > 0 && aiInput.trim() && (
+                <div className="mb-2 px-1 text-xs text-white/40 truncate">
+                  Typing: <span className="text-white/70">{aiInput}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 bg-white/[0.08] border border-white/[0.12] rounded-xl overflow-hidden focus-within:border-purple-500/30 transition-colors duration-150">
                 <input
-                  className="bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none h-11 px-4 text-sm flex-1 text-white placeholder:text-[var(--t-low)]"
+                  ref={inputRef}
+                  className="bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none h-12 px-4 text-sm flex-1 text-white placeholder:text-white/30"
                   placeholder={`Ask about ${ticker}...`}
                   value={aiInput}
                   onChange={(e) => setAiInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !aiLoading && sendMessage(aiInput)}
                   disabled={aiLoading}
                   style={{ fontSize: "16px" }}
+                  autoComplete="off"
+                  enterKeyHint="send"
                 />
                 <button
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-150 mr-0.5 shrink-0 ${
+                  className={`w-11 h-11 rounded-lg flex items-center justify-center transition-all duration-150 mr-0.5 shrink-0 ${
                     aiLoading || !aiInput.trim()
                       ? "bg-purple-500/10 text-purple-400/30 cursor-default"
-                      : "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 cursor-pointer"
+                      : "bg-purple-500/30 hover:bg-purple-500/40 text-purple-300 cursor-pointer shadow-[0_0_12px_rgba(168,85,247,0.2)]"
                   }`}
                   onClick={() => sendMessage(aiInput)}
                   disabled={aiLoading || !aiInput.trim()}
@@ -539,7 +631,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
               </div>
             </div>
             {/* Spacer for fixed input on mobile */}
-            {mobile && <div className="h-[80px]" />}
+            {mobile && <div className="h-[100px]" />}
           </>
         ) : (
           <div style={{ padding: "var(--sp-3)" }}>
