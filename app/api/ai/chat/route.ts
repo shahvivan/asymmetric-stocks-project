@@ -34,8 +34,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      return NextResponse.json({ error: `Groq API error: ${err}` }, { status: res.status });
+      // Plain English errors — raw Groq JSON overflows the UI
+      if (res.status === 401) return NextResponse.json({ error: "Invalid Groq API key — update it in Settings" }, { status: 400 });
+      if (res.status === 429) return NextResponse.json({ error: "Groq rate limit reached — wait a minute and try again, or upgrade your plan at console.groq.com" }, { status: 429 });
+      if (res.status === 503) return NextResponse.json({ error: "Groq is temporarily unavailable — try again shortly" }, { status: res.status });
+      return NextResponse.json({ error: "AI service error — try again in a moment" }, { status: res.status });
     }
 
     const data = await res.json();

@@ -293,14 +293,21 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
         }),
       });
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "AI service error — check your Groq API key in Settings" }));
+        setMessages((prev) => [...prev, { role: "assistant", content: errData.error || "AI service error — try again" }]);
+        return;
+      }
       const data = await res.json();
-      if (data.content) {
+      if (data.error) {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.error }]);
+      } else if (data.content) {
         setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
       } else {
-        setMessages((prev) => [...prev, { role: "assistant", content: "Sorry, I couldn't generate a response." }]);
+        setMessages((prev) => [...prev, { role: "assistant", content: "No response from AI — check your API key in Settings" }]);
       }
     } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Error connecting to AI service." }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Could not connect to AI service — check your internet connection" }]);
     } finally {
       setAiLoading(false);
     }
@@ -466,7 +473,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
                         {msg.content}
                       </div>
                     ) : (
-                      <div className="relative bg-white/[0.03] border border-white/[0.06] text-white/90 rounded-2xl rounded-bl-md px-4 py-3 mr-4 text-[12px] leading-relaxed max-w-[95%]">
+                      <div className="relative bg-white/[0.03] border border-white/[0.06] text-white/90 rounded-2xl rounded-bl-md px-4 py-3 mr-4 text-[12px] leading-relaxed max-w-[95%]" style={{ overflowWrap: "anywhere" }}>
                         <div className="absolute left-0 top-3 w-[2px] h-4 bg-purple-500/40 rounded-full" />
                         {renderMarkdown(msg.content)}
                       </div>

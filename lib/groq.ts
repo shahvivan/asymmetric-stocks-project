@@ -25,8 +25,11 @@ export async function callGroq(
   });
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Groq API error ${res.status}: ${err}`);
+    // Translate to plain English — raw Groq JSON errors overflow the UI
+    if (res.status === 401) throw new Error("Invalid Groq API key — update it in Settings");
+    if (res.status === 429) throw new Error("Groq rate limit reached — wait a minute and try again, or upgrade your plan at console.groq.com");
+    if (res.status === 503) throw new Error("Groq is temporarily unavailable — try again shortly");
+    throw new Error("AI service error — try again in a moment");
   }
 
   const data = await res.json();
