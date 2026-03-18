@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/app/providers";
 import { formatPrice, formatPercent } from "@/lib/utils";
 
@@ -74,15 +75,33 @@ export default function StockHeader({ ticker, name }: StockHeaderProps) {
   // For non-screener stocks, use liveQuote
   if (!stock && liveQuote) {
     const displayPrice = realtimePrice?.price ?? liveQuote.price;
+    const formattedPrice = formatPrice(displayPrice);
     const isPositive = liveQuote.changePercent >= 0;
     return (
-      <div className="stock-header">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="stock-header"
+      >
         <div className="stock-header-left">
           <div className="stock-meta">
             <span className="stock-company">{liveQuote.name || name || ticker}</span>
             <span className="stock-ticker-badge">{ticker}</span>
           </div>
-          <div className="stock-price">{formatPrice(displayPrice)}</div>
+          <div className="stock-price">
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={displayPrice}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.2 }}
+              >
+                {formattedPrice}
+              </motion.span>
+            </AnimatePresence>
+          </div>
           <div className="stock-change-row">
             <span className="stock-change-abs" style={{ color: isPositive ? "var(--green)" : "var(--red)" }}>
               {isPositive ? "+" : ""}{formatPrice(liveQuote.change)}
@@ -92,24 +111,42 @@ export default function StockHeader({ ticker, name }: StockHeaderProps) {
             </span>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   // At this point, stock is guaranteed non-null (early returns above handle null cases)
   const s = stock!;
   const displayPrice = realtimePrice?.price ?? s.price;
+  const formattedPrice = formatPrice(displayPrice);
   const isPositive = s.changePercent >= 0;
 
   return (
-    <div className="stock-header">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="stock-header"
+    >
       <div className="stock-header-left">
         <div className="stock-meta">
           <span className="stock-company">{s.name}</span>
           <span className="stock-ticker-badge">{s.ticker}</span>
           {s.sector && <span className="stock-sector-badge">{s.sector}</span>}
         </div>
-        <div className="stock-price">{formatPrice(displayPrice)}</div>
+        <div className="stock-price">
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={displayPrice}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {formattedPrice}
+            </motion.span>
+          </AnimatePresence>
+        </div>
         <div className="stock-change-row">
           <span
             className="stock-change-abs"
@@ -164,6 +201,6 @@ export default function StockHeader({ ticker, name }: StockHeaderProps) {
         </div>
         <div style={{ fontSize: "var(--fs-10)", color: "var(--t-low)" }}>Asymmetry Score</div>
       </div>
-    </div>
+    </motion.div>
   );
 }

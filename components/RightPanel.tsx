@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import useSWR from "swr";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/app/providers";
 import { FinnhubFundamentals } from "@/lib/types";
 import { formatLargeNumber } from "@/lib/utils";
 import SetupPrompt from "./SetupPrompt";
+import CompanyLogo from "./CompanyLogo";
 
 interface RightPanelProps {
   ticker: string;
@@ -58,19 +60,19 @@ function renderMarkdown(text: string) {
     if (numberedMatch) {
       elements.push(
         <div key={`li-${i}`} className="flex gap-2 py-1">
-          <span className="text-blue-400 font-bold shrink-0">{numberedMatch[1]}.</span>
+          <span className="text-purple-400 font-bold shrink-0">{numberedMatch[1]}.</span>
           <span>{processInline(numberedMatch[2])}</span>
         </div>
       );
       return;
     }
 
-    // Bullet list (- item or • item)
+    // Bullet list (- item or * item)
     const bulletMatch = trimmed.match(/^[-•]\s+(.*)/);
     if (bulletMatch) {
       elements.push(
         <div key={`bl-${i}`} className="flex gap-2 py-0.5 pl-1">
-          <span className="text-blue-400 shrink-0">•</span>
+          <span className="text-purple-400 shrink-0">•</span>
           <span>{processInline(bulletMatch[1])}</span>
         </div>
       );
@@ -81,7 +83,7 @@ function renderMarkdown(text: string) {
     if (/^[A-Z][A-Z\s/&]+:?$/.test(trimmed) || /^#{1,3}\s/.test(trimmed)) {
       const headerText = trimmed.replace(/^#{1,3}\s/, "");
       elements.push(
-        <div key={`h-${i}`} className="text-blue-400 font-bold text-xs uppercase tracking-wider pt-2 pb-1 border-b border-white/10 mb-1">
+        <div key={`h-${i}`} className="text-purple-400 font-bold text-xs uppercase tracking-wider pt-2 pb-1 border-b border-white/[0.06] mb-1">
           {headerText}
         </div>
       );
@@ -122,17 +124,21 @@ const QUICK_QUESTIONS = [
   "Compare to sector peers",
 ];
 
-function getAvatarGradient(ticker: string): string {
-  const colors = [
-    ["#4f8ef7", "#a78bfa"],
-    ["#00d4aa", "#4f8ef7"],
-    ["#f0a500", "#ff4d6a"],
-    ["#a78bfa", "#ff4d6a"],
-    ["#00d4aa", "#f0a500"],
-  ];
-  const idx = ticker.split("").reduce((a, c) => a + c.charCodeAt(0), 0) % colors.length;
-  return `linear-gradient(135deg, ${colors[idx][0]}, ${colors[idx][1]})`;
-}
+
+/** Stagger container + child variants for fundamentals grid */
+const staggerContainer = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.04,
+    },
+  },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 6 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+};
 
 export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelProps) {
   const { settings, screenerData } = useApp();
@@ -203,7 +209,7 @@ export default function RightPanel({ ticker, name, mobile, aiOnly }: RightPanelP
         // Add trade setup
         if (stock.tradeSetup) {
           const ts = stock.tradeSetup;
-          tradeSetupText = `\n\nTRADE SETUP:\n- Entry Zone: $${ts.entryZone[0].toFixed(2)} - $${ts.entryZone[1].toFixed(2)}\n- Target: $${ts.target.toFixed(2)} (R:R ${ts.riskReward}:1)\n- Stop Loss: $${ts.stopLoss.toFixed(2)}\n- Size: ${ts.kellyPercent}% of portfolio\n- Hold Window: ${ts.holdWindow[0]}-${ts.holdWindow[1]} days`;
+          tradeSetupText = `\n\nTRADE SETUP:\n- Entry Zone: $${ts.entryZone[0].toFixed(2)} - $${ts.entryZone[1].toFixed(2)}\n- Target: $${ts.target.toFixed(2)} (Risk:Reward 1:${ts.riskReward.toFixed(1)})\n- Stop Loss: $${ts.stopLoss.toFixed(2)}\n- Size: ${ts.kellyPercent}% of portfolio\n- Hold Window: ${ts.holdWindow[0]}-${ts.holdWindow[1]} days`;
         }
       }
 
@@ -298,7 +304,7 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
     } finally {
       setAiLoading(false);
     }
-  }, [settings.groqApiKey, settings.finnhubApiKey, stock, ticker, messages]);
+  }, [settings.groqApiKey, settings.finnhubApiKey, stock, ticker, messages, fundamentals]);
 
   const fundItems = [
     { label: "P/E", value: fundamentals?.peRatio?.toFixed(1) },
@@ -311,93 +317,108 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
 
   return (
     <div className={`right-panel ${mobile ? "mobile-right-panel" : ""}`}>
-      {/* Zone 1: Company Card — skip if aiOnly on mobile */}
-      {!aiOnly && <div className="right-panel-section">
-        <div style={{ display: "flex", gap: "var(--sp-3)", alignItems: "center", marginBottom: "var(--sp-3)" }}>
-          <div
-            className="company-avatar"
-            style={{ background: getAvatarGradient(ticker) }}
-          >
-            {ticker.charAt(0)}
-          </div>
-          <div>
-            <div className="company-name">{name || ticker}</div>
-            <div style={{ fontSize: "var(--fs-11)", color: "var(--t-low)" }}>{stock?.sector ?? ""}</div>
-          </div>
-        </div>
-
-        {stock && (
-          <>
-            <p className={`company-about ${aboutExpanded ? "expanded" : ""}`}>
-              {stock.name} is a {stock.sector} company currently trading at ${stock.price.toFixed(2)}.
-              {stock.signal !== "NONE" && ` Currently rated ${stock.signal} with an asymmetry score of ${stock.asymmetryScore}/100.`}
-              {stock.rsi !== null && ` RSI is at ${stock.rsi.toFixed(1)}, indicating ${stock.rsi < 30 ? "oversold" : stock.rsi > 70 ? "overbought" : "neutral"} conditions.`}
-              {stock.tradeSetup && ` Trade setup suggests entry around $${stock.tradeSetup.entryZone[0].toFixed(2)}-$${stock.tradeSetup.entryZone[1].toFixed(2)} with a ${stock.tradeSetup.riskReward.toFixed(1)}:1 risk/reward ratio.`}
-            </p>
-            <button
-              onClick={() => setAboutExpanded(!aboutExpanded)}
-              style={{
-                fontSize: "var(--fs-10)",
-                color: "var(--blue)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: "var(--sp-1) 0",
-              }}
-            >
-              {aboutExpanded ? "Show less" : "Show more"}
-            </button>
-          </>
-        )}
-
-        {stock && (
-          <div className="company-stats" style={{ marginTop: "var(--sp-3)" }}>
-            <div>
-              <div className="company-stat-label">Volume</div>
-              <div className="company-stat-value">{formatLargeNumber(stock.volume)}</div>
-            </div>
-            <div>
-              <div className="company-stat-label">Avg Volume</div>
-              <div className="company-stat-value">{formatLargeNumber(stock.avgVolume)}</div>
-            </div>
-            <div>
-              <div className="company-stat-label">Beta</div>
-              <div className="company-stat-value">{stock.beta.toFixed(2)}</div>
-            </div>
-            <div>
-              <div className="company-stat-label">Vol Ratio</div>
-              <div className="company-stat-value">{stock.volumeRatio.toFixed(1)}x</div>
-            </div>
-          </div>
-        )}
-      </div>}
-
-      {/* Zone 2: Fundamentals Mini Grid — skip if aiOnly */}
-      {!aiOnly && fundItems.length > 0 && (
-        <div className="right-panel-section">
-          <div style={{ fontSize: "var(--fs-10)", fontWeight: 700, color: "var(--t-low)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--sp-2)" }}>
-            Fundamentals
-          </div>
-          <div className="fund-mini-grid">
-            {fundItems.map((item) => (
-              <div key={item.label} className="fund-mini-item">
-                <div className="fund-mini-label">{item.label}</div>
-                <div className="fund-mini-value">{item.value}</div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={ticker}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          {/* Zone 1: Company Card — skip if aiOnly on mobile */}
+          {!aiOnly && <div className="right-panel-section">
+            <div style={{ display: "flex", gap: "var(--sp-3)", alignItems: "center", marginBottom: "var(--sp-3)" }}>
+              <CompanyLogo ticker={ticker} name={name || ticker} size={48} />
+              <div>
+                <div className="company-name">{name || ticker}</div>
+                <div style={{ fontSize: "var(--fs-11)", color: "var(--t-low)" }}>{stock?.sector ?? ""}</div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* Zone 3: AI Analyst */}
+            {stock && (
+              <>
+                <p className={`company-about ${aboutExpanded ? "expanded" : ""}`}>
+                  {stock.name} is a {stock.sector} company currently trading at ${stock.price.toFixed(2)}.
+                  {stock.signal !== "NONE" && ` Currently rated ${stock.signal} with an asymmetry score of ${stock.asymmetryScore}/100.`}
+                  {stock.rsi !== null && ` RSI is at ${stock.rsi.toFixed(1)}, indicating ${stock.rsi < 30 ? "oversold" : stock.rsi > 70 ? "overbought" : "neutral"} conditions.`}
+                  {stock.tradeSetup && ` Trade setup suggests entry around $${stock.tradeSetup.entryZone[0].toFixed(2)}-$${stock.tradeSetup.entryZone[1].toFixed(2)} with a 1:${stock.tradeSetup.riskReward.toFixed(1)} risk-to-reward ratio.`}
+                </p>
+                <button
+                  onClick={() => setAboutExpanded(!aboutExpanded)}
+                  style={{
+                    fontSize: "var(--fs-10)",
+                    color: "var(--blue)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "var(--sp-1) 0",
+                  }}
+                >
+                  {aboutExpanded ? "Show less" : "Show more"}
+                </button>
+              </>
+            )}
+
+            {stock && (
+              <motion.div
+                className="company-stats"
+                style={{ marginTop: "var(--sp-3)" }}
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+              >
+                {[
+                  { label: "Volume", value: formatLargeNumber(stock.volume) },
+                  { label: "Avg Volume", value: formatLargeNumber(stock.avgVolume) },
+                  { label: "Beta", value: stock.beta.toFixed(2) },
+                  { label: "Vol Ratio", value: `${stock.volumeRatio.toFixed(1)}x` },
+                ].map((stat) => (
+                  <motion.div key={stat.label} variants={staggerItem}>
+                    <div className="company-stat-label">{stat.label}</div>
+                    <div className="company-stat-value">{stat.value}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </div>}
+
+          {/* Zone 2: Fundamentals Mini Grid — skip if aiOnly */}
+          {!aiOnly && fundItems.length > 0 && (
+            <div className="right-panel-section">
+              <div style={{ fontSize: "var(--fs-10)", fontWeight: 700, color: "var(--t-low)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "var(--sp-2)" }}>
+                Fundamentals
+              </div>
+              <motion.div
+                className="fund-mini-grid"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
+              >
+                {fundItems.map((item) => (
+                  <motion.div key={item.label} className="fund-mini-item" variants={staggerItem}>
+                    <div className="fund-mini-label">{item.label}</div>
+                    <div className="fund-mini-value">{item.value}</div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Zone 3: AI Analyst — kept outside crossfade so chat persists during ticker changes */}
       <div className="right-panel-section">
-        <div className="ai-section-header">
-          <span className="ai-badge">AI Analyst</span>
-          <span style={{ fontSize: "var(--fs-10)", color: "var(--t-ghost)" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.4)]" />
+            <span className="text-sm font-semibold text-white">AI Analyst</span>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider text-[var(--t-ghost)]">
             {settings.groqApiKey && settings.finnhubApiKey
-              ? "Powered by Groq"
+              ? "Groq"
               : settings.groqApiKey
-              ? "Add Finnhub key for news"
+              ? "Add Finnhub key"
               : "Setup required"}
           </span>
         </div>
@@ -409,11 +430,13 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
                 <SetupPrompt variant="finnhub" size="compact" />
               </div>
             )}
-            <div className="ai-quick-questions">
+
+            {/* Quick Questions */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
               {QUICK_QUESTIONS.map((q) => (
                 <button
                   key={q}
-                  className="ai-quick-btn"
+                  className="group bg-white/[0.04] border border-white/[0.06] rounded-full px-3 py-1.5 text-xs text-[var(--t-low)] hover:bg-white/[0.08] hover:text-white hover:border-purple-500/30 transition-all duration-150 disabled:opacity-40 disabled:cursor-default"
                   onClick={() => sendMessage(q)}
                   disabled={aiLoading}
                 >
@@ -422,43 +445,75 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
               ))}
             </div>
 
+            {/* Messages */}
             <div className="ai-messages">
               {messages.length === 0 && (
-                <div style={{ textAlign: "center", padding: "var(--sp-4)", color: "var(--t-ghost)", fontSize: "var(--fs-11)" }}>
-                  Ask anything about {ticker}
+                <div className="flex items-center justify-center py-10">
+                  <span className="text-sm text-[var(--t-ghost)]">Ask anything about {ticker}</span>
                 </div>
               )}
-              {messages.map((msg, i) => (
-                <div key={i} className={`ai-msg ${msg.role}`}>
-                  {msg.role === "assistant" ? renderMarkdown(msg.content) : msg.content}
-                </div>
-              ))}
+              <AnimatePresence initial={false}>
+                {messages.map((msg, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className={msg.role === "user" ? "flex justify-end" : "flex justify-start"}
+                  >
+                    {msg.role === "user" ? (
+                      <div className="bg-[var(--blue-bg)] text-white rounded-2xl rounded-br-md px-4 py-2.5 ml-8 text-[13px] leading-relaxed max-w-[90%]">
+                        {msg.content}
+                      </div>
+                    ) : (
+                      <div className="relative bg-white/[0.03] border border-white/[0.06] text-white/90 rounded-2xl rounded-bl-md px-4 py-3 mr-4 text-[12px] leading-relaxed max-w-[95%]">
+                        <div className="absolute left-0 top-3 w-[2px] h-4 bg-purple-500/40 rounded-full" />
+                        {renderMarkdown(msg.content)}
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
               {aiLoading && (
-                <div className="ai-msg assistant">
-                  <span style={{ animation: "pulse 1.5s infinite" }}>Thinking...</span>
+                <div className="flex justify-start">
+                  <div className="bg-white/[0.03] border border-white/[0.06] rounded-2xl rounded-bl-md px-4 py-3 mr-4">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="inline-block w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="inline-block w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </span>
+                  </div>
                 </div>
               )}
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="ai-input-row">
-              <input
-                className="ai-input"
-                placeholder={`Ask about ${ticker}...`}
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && !aiLoading && sendMessage(aiInput)}
-                disabled={aiLoading}
-              />
-              <button
-                className="ai-send-btn"
-                onClick={() => sendMessage(aiInput)}
-                disabled={aiLoading || !aiInput.trim()}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
-                </svg>
-              </button>
+            {/* Input Area */}
+            <div className="mt-3 flex-shrink-0">
+              <div className="flex items-center gap-1 bg-white/[0.06] border border-white/[0.10] rounded-xl overflow-hidden focus-within:border-white/[0.16] transition-colors duration-150">
+                <input
+                  className="bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none h-11 px-4 text-sm flex-1 text-white placeholder:text-[var(--t-low)]"
+                  placeholder={`Ask about ${ticker}...`}
+                  value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && !aiLoading && sendMessage(aiInput)}
+                  disabled={aiLoading}
+                />
+                <button
+                  className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-150 mr-0.5 shrink-0 ${
+                    aiLoading || !aiInput.trim()
+                      ? "bg-purple-500/10 text-purple-400/30 cursor-default"
+                      : "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 cursor-pointer"
+                  }`}
+                  onClick={() => sendMessage(aiInput)}
+                  disabled={aiLoading || !aiInput.trim()}
+                >
+                  {/* Arrow up icon */}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 19V5M5 12l7-7 7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -470,4 +525,3 @@ ${context}${breakdownText}${tradeSetupText}${fundsText}${newsContext}`;
     </div>
   );
 }
-

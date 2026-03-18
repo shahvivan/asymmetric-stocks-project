@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { motion } from "framer-motion";
 import { useApp } from "@/app/providers";
 import { FinnhubFundamentals } from "@/lib/types";
 import { formatLargeNumber } from "@/lib/utils";
@@ -68,14 +69,29 @@ export default function FundamentalsBar({ ticker }: FundamentalsBarProps) {
     if (basicItems.length === 0) return null;
 
     return (
-      <div className="fundamentals-bar">
-        {basicItems.map((item) => (
-          <div key={item.label} className="fund-item">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.03 } },
+        }}
+        className="fundamentals-bar"
+      >
+        {basicItems.map((item, i) => (
+          <motion.div
+            key={i}
+            variants={{
+              hidden: { opacity: 0, y: 4 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+            }}
+            className="fund-item"
+          >
             <div className="fund-label">{item.label}</div>
             <div className="fund-value">{item.value}</div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     );
   }
 
@@ -95,13 +111,28 @@ export default function FundamentalsBar({ ticker }: FundamentalsBarProps) {
   if (items.length === 0) return null;
 
   return (
-    <div className="fundamentals-bar">
-      {items.map((item) => (
-        <div key={item.label} className="fund-item">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.03 } },
+      }}
+      className="fundamentals-bar"
+    >
+      {items.map((item, i) => (
+        <motion.div
+          key={i}
+          variants={{
+            hidden: { opacity: 0, y: 4 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+          }}
+          className="fund-item"
+        >
           <div className="fund-label">{item.label}</div>
           <div className="fund-value">{item.value}</div>
-        </div>
+        </motion.div>
       ))}
-    </div>
+    </motion.div>
   );
 }

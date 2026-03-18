@@ -7,15 +7,23 @@ export function calculateRSI(closePrices: number[], period = 14): number | null 
 }
 
 export function calculateMomentum(closePrices: number[]): number | null {
-  if (closePrices.length < 20) return null;
+  if (closePrices.length < 21) return null;
   const latest = closePrices[closePrices.length - 1];
-  const fiveDayAgo = closePrices[closePrices.length - 5];
-  const twentyDayAgo = closePrices[closePrices.length - 20];
-  if (!fiveDayAgo || !twentyDayAgo || twentyDayAgo === 0 || latest === 0) return null;
-  const shortReturn = (latest - fiveDayAgo) / fiveDayAgo;
-  const longReturn = (latest - twentyDayAgo) / twentyDayAgo;
-  if (longReturn === 0) return 0;
-  return Math.round((shortReturn / longReturn) * 100) / 100;
+  const fiveDayAgo = closePrices[closePrices.length - 6];
+  const twentyDayAgo = closePrices[closePrices.length - 21];
+
+  if (fiveDayAgo <= 0 || twentyDayAgo <= 0) return null;
+
+  // ROC-based momentum: recent acceleration beyond the trend
+  const roc5 = ((latest - fiveDayAgo) / fiveDayAgo) * 100;  // 5-day rate of change %
+  const roc20 = ((latest - twentyDayAgo) / twentyDayAgo) * 100;  // 20-day rate of change %
+
+  // Momentum = short-term ROC minus proportional long-term ROC
+  // Positive = accelerating, Negative = decelerating
+  const momentum = roc5 - (roc20 * 0.25);
+
+  // Clamp to prevent extremes
+  return Math.max(-10, Math.min(10, Math.round(momentum * 100) / 100));
 }
 
 export function calculateSMA(closePrices: number[], period: number): number | null {

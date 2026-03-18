@@ -4,13 +4,33 @@ import { useState, useMemo } from "react";
 import { useApp } from "../providers";
 import { SkeletonTable } from "@/components/Skeleton";
 import { SECTORS } from "@/lib/constants";
-import { formatPrice, formatPercent, getScoreBgClass, cn } from "@/lib/utils";
+import { formatPrice, formatPercent, cn } from "@/lib/utils";
 import AsymmetryBar from "@/components/AsymmetryBar";
 import StockDrawer from "@/components/StockDrawer";
+import { Button } from "@/components/ui/Button";
+import { SignalBadge } from "@/components/ui/Badge";
 import toast from "react-hot-toast";
 
 type SortKey = "ticker" | "price" | "asymmetryScore" | "rsi" | "pctFromHigh" | "volumeRatio" | "changePercent" | "momentum";
 type SortDir = "asc" | "desc";
+
+function getSignalAccent(signal: string): string {
+  switch (signal) {
+    case "STRONG BUY":
+    case "HOLD_STRONG":
+      return "hover:border-l-profit/60";
+    case "BUY":
+    case "WATCH":
+      return "hover:border-l-buy/60";
+    case "MONITOR":
+      return "hover:border-l-monitor/60";
+    case "EXIT_NOW":
+    case "SELL":
+      return "hover:border-l-sell/60";
+    default:
+      return "hover:border-l-white/10";
+  }
+}
 
 export default function ScreenerPage() {
   const { screenerData, selectedStock, setSelectedStock } = useApp();
@@ -58,17 +78,24 @@ export default function ScreenerPage() {
   };
 
   return (
-    <div className="p-3 md:p-6 space-y-3 md:space-y-4">
+    <div className="p-4 md:p-8 space-y-5 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2 md:gap-3">
+      <div className="flex items-start justify-between flex-wrap gap-3 md:gap-4 mb-2">
         <div>
-          <h1 className="text-lg md:text-xl font-bold">Asymmetric Screener</h1>
-          <p className="text-[11px] md:text-xs text-muted mt-0.5">
-            {screenerData.length} stocks |
-            {enriching ? " Calculating full scores..." : " Scores complete"}
+          <h1 className="text-2xl font-bold tracking-tight text-white">Asymmetric Screener</h1>
+          <p className="text-xs md:text-sm text-muted mt-1.5">
+            {screenerData.length} stocks scanned
+            <span className="mx-1.5 text-white/10">|</span>
+            {enriching ? (
+              <span className="text-monitor">Calculating full scores...</span>
+            ) : (
+              <span className="text-profit/70">All scores complete</span>
+            )}
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => {
             if (justRefreshed) return;
             refreshScreener();
@@ -77,35 +104,42 @@ export default function ScreenerPage() {
             setTimeout(() => setJustRefreshed(false), 60000);
           }}
           disabled={isRefreshing || justRefreshed}
-          className="px-3 md:px-4 py-2 min-h-[44px] bg-buy/10 text-buy text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
+          loading={isRefreshing}
         >
           {isRefreshing ? "Refreshing..." : justRefreshed ? "Up to date" : "Refresh Now"}
-        </button>
+        </Button>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row flex-wrap gap-2 md:gap-3 sm:items-center">
-        <select
-          value={sectorFilter}
-          onChange={(e) => setSectorFilter(e.target.value)}
-          className="bg-surface border border-border rounded-lg px-3 py-2 text-sm md:text-base text-white min-h-[44px] w-full sm:w-auto sm:flex-none"
-        >
-          <option value="All">All Sectors</option>
-          {SECTORS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-        <div className="flex items-center gap-2 min-h-[44px]">
-          <label className="text-xs text-muted">Min Score:</label>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={minScore}
-            onChange={(e) => setMinScore(Number(e.target.value))}
-            className="w-24 md:w-24 accent-buy min-h-[44px]"
-          />
-          <span className="text-xs text-muted-2 w-8">{minScore}</span>
+      {/* Controls bar — glass effect */}
+      <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-4 mb-6">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:items-center">
+          <select
+            value={sectorFilter}
+            onChange={(e) => setSectorFilter(e.target.value)}
+            className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-white min-h-[44px] w-full sm:w-auto sm:flex-none focus:outline-none focus:ring-1 focus:ring-white/10 transition-colors"
+          >
+            <option value="All">All Sectors</option>
+            {SECTORS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+          <div className="flex items-center gap-3 min-h-[44px]">
+            <label className="text-xs text-muted whitespace-nowrap">Min Score</label>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={minScore}
+              onChange={(e) => setMinScore(Number(e.target.value))}
+              className="w-28 accent-buy min-h-[44px]"
+            />
+            <span className="text-xs font-mono text-white/50 w-8 text-right tabular-nums">{minScore}</span>
+          </div>
+          {(sectorFilter !== "All" || minScore > 0) && (
+            <span className="text-xs text-muted">
+              {displayStocks.length} result{displayStocks.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
       </div>
 
@@ -113,80 +147,105 @@ export default function ScreenerPage() {
       {screenerData.length === 0 ? (
         <SkeletonTable rows={15} />
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto relative md:max-h-[calc(100vh-220px)] md:overflow-y-auto -webkit-overflow-scrolling-touch" style={{ WebkitOverflowScrolling: "touch" }}>
-          <table className="w-full text-xs md:text-sm md:min-w-0">
-            <thead>
-              <tr className="bg-surface-2 text-muted-2 text-xs font-semibold border-b border-border sticky-thead">
-                {([
-                  ["ticker", "Ticker"],
-                  ["price", "Price"],
-                  ["changePercent", "Chg%"],
-                  ["asymmetryScore", "Score"],
-                  ["rsi", "RSI"],
-                  ["pctFromHigh", "% High"],
-                  ["volumeRatio", "Vol"],
-                  ["momentum", "Mom"],
-                ] as [SortKey, string][]).map(([key, label]) => (
-                  <th
-                    key={key}
-                    onClick={() => handleSort(key)}
-                    className={cn(
-                      "px-2 md:px-3 py-2.5 md:py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap min-h-[44px]",
-                      (key === "rsi" || key === "pctFromHigh" || key === "volumeRatio" || key === "momentum") && "hidden md:table-cell"
-                    )}
-                  >
-                    {label}
-                    {sortKey === key && (
-                      <span className="ml-1">{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>
-                    )}
-                  </th>
-                ))}
-                <th className="px-2 md:px-3 py-2 text-left">Signal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayStocks.map((stock) => (
-                <tr
-                  key={stock.ticker}
-                  onClick={() => setSelectedStock({ ticker: stock.ticker, name: stock.name })}
-                  className={cn(
-                    "border-t border-border hover:bg-white/10 transition-colors cursor-pointer",
-                    getScoreBgClass(stock.asymmetryScore)
-                  )}
-                >
-                  <td className="px-2 md:px-3 py-3 md:py-2 font-mono font-bold text-white text-sm md:text-base">{stock.ticker}</td>
-                  <td className="px-2 md:px-3 py-2.5 md:py-2 font-mono">{formatPrice(stock.price)}</td>
-                  <td className={cn("px-2 md:px-3 py-2.5 md:py-2 font-mono", stock.changePercent >= 0 ? "text-profit" : "text-sell")}>
-                    {formatPercent(stock.changePercent)}
-                  </td>
-                  <td className="px-2 md:px-3 py-2.5 md:py-2">
-                    <AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" />
-                  </td>
-                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">
-                    {stock.rsi !== null ? stock.rsi.toFixed(1) : "..."}
-                  </td>
-                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{stock.pctFromHigh.toFixed(1)}%</td>
-                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">{stock.volumeRatio.toFixed(1)}x</td>
-                  <td className="px-2 md:px-3 py-2 font-mono text-muted-2 hidden md:table-cell">
-                    {stock.momentum !== null ? stock.momentum.toFixed(2) : "..."}
-                  </td>
-                  <td className="px-2 md:px-3 py-2.5 md:py-2">
-                    <span className={cn(
-                      "text-xs font-bold px-1.5 md:px-2 py-0.5 rounded",
-                      stock.signal === "STRONG BUY" ? "text-profit bg-profit/20 border border-profit/30" :
-                      stock.signal === "BUY" ? "text-buy bg-buy/20 border border-buy/30" :
-                      "text-muted-2 bg-white/10"
-                    )}>
-                      {stock.signal}
-                    </span>
-                  </td>
+        <div
+          className="bg-surface/30 border border-white/[0.06] rounded-xl overflow-hidden"
+        >
+          <div
+            className="overflow-x-auto relative md:max-h-[calc(100vh-280px)] md:overflow-y-auto"
+            style={{ WebkitOverflowScrolling: "touch" }}
+          >
+            <table className="w-full text-xs md:text-sm md:min-w-0">
+              <thead>
+                <tr className="bg-white/[0.02] text-[10px] md:text-[11px] text-muted uppercase tracking-wider font-medium sticky-thead">
+                  {([
+                    ["ticker", "Ticker"],
+                    ["price", "Price"],
+                    ["changePercent", "Chg%"],
+                    ["asymmetryScore", "Score"],
+                    ["rsi", "RSI"],
+                    ["pctFromHigh", "% High"],
+                    ["volumeRatio", "Vol"],
+                    ["momentum", "Mom"],
+                  ] as [SortKey, string][]).map(([key, label]) => (
+                    <th
+                      key={key}
+                      onClick={() => handleSort(key)}
+                      className={cn(
+                        "px-4 md:px-5 py-3 md:py-3.5 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap border-b border-white/[0.04]",
+                        (key === "rsi" || key === "pctFromHigh" || key === "volumeRatio" || key === "momentum") && "hidden md:table-cell"
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {label}
+                        {sortKey === key && (
+                          <span className="text-white/40">{sortDir === "asc" ? "\u25B2" : "\u25BC"}</span>
+                        )}
+                      </span>
+                    </th>
+                  ))}
+                  <th className="px-4 md:px-5 py-3 md:py-3.5 text-left border-b border-white/[0.04]">Signal</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {displayStocks.length === 0 && (
-            <div className="text-center py-12 text-muted">No stocks match your filters</div>
-          )}
+              </thead>
+              <tbody>
+                {displayStocks.map((stock, index) => (
+                  <tr
+                    key={stock.ticker}
+                    onClick={() => setSelectedStock({ ticker: stock.ticker, name: stock.name })}
+                    className={cn(
+                      "border-b border-white/[0.04] last:border-b-0 transition-all cursor-pointer",
+                      "hover:bg-white/[0.02]",
+                      "border-l-2 border-l-transparent",
+                      getSignalAccent(stock.signal),
+                      index < 15 && "animate-fade-up"
+                    )}
+                    style={index < 15 ? { animationDelay: `${index * 30}ms` } : undefined}
+                  >
+                    <td className="px-4 md:px-5 py-3.5 font-mono font-bold text-white text-sm md:text-base">
+                      {stock.ticker}
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5 font-mono text-white/80">
+                      {formatPrice(stock.price)}
+                    </td>
+                    <td className={cn(
+                      "px-4 md:px-5 py-3.5 font-mono font-medium",
+                      stock.changePercent >= 0 ? "text-profit" : "text-sell"
+                    )}>
+                      {formatPercent(stock.changePercent)}
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5 min-w-[140px] md:min-w-[180px]">
+                      <AsymmetryBar score={stock.asymmetryScore} breakdown={stock.breakdown} size="sm" />
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
+                      {stock.rsi !== null ? stock.rsi.toFixed(1) : "..."}
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
+                      {stock.pctFromHigh.toFixed(1)}%
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
+                      {stock.volumeRatio.toFixed(1)}x
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5 font-mono text-muted-2 hidden md:table-cell">
+                      {stock.momentum !== null ? stock.momentum.toFixed(2) : "..."}
+                    </td>
+                    <td className="px-4 md:px-5 py-3.5">
+                      <SignalBadge signal={stock.signal} size="sm" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {displayStocks.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-12 h-12 rounded-full bg-white/[0.04] flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+                <p className="text-sm text-muted font-medium mb-1">No stocks match your filters</p>
+                <p className="text-xs text-muted-2">Try adjusting the sector or lowering the minimum score</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
       {/* Mobile bottom nav spacer */}

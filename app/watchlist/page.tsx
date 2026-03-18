@@ -6,6 +6,9 @@ import { useApp } from "../providers";
 import { formatPrice, cn } from "@/lib/utils";
 import { cacheExchange } from "@/lib/exchange";
 import toast from "react-hot-toast";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { motion } from "framer-motion";
 
 export default function WatchlistPage() {
   const { watchlist, screenerData, addToWatchlist, removeFromWatchlist, updateWatchlistThreshold, reorderWatchlist } = useApp();
@@ -61,6 +64,20 @@ export default function WatchlistPage() {
     toast.success("Sorted by score");
   };
 
+  const containerVariants = {
+    hidden: {},
+    visible: {
+      transition: {
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] } },
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -69,9 +86,9 @@ export default function WatchlistPage() {
           <p className="text-xs text-muted mt-0.5">{watchlist.length} items</p>
         </div>
         {watchlist.length > 1 && (
-          <button onClick={sortByScore} className="px-3 py-1.5 bg-buy/10 text-buy border border-buy/20 rounded-lg text-xs hover:bg-buy/20 transition-colors">
+          <Button variant="secondary" size="sm" onClick={sortByScore}>
             Sort by Score
-          </button>
+          </Button>
         )}
       </div>
 
@@ -108,78 +125,92 @@ export default function WatchlistPage() {
           No items in watchlist. Add tickers above.
         </div>
       ) : (
-        <div className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-2 md:grid md:grid-cols-2 md:gap-3 md:space-y-0"
+        >
           {enrichedWatchlist.map((item, index) => (
-            <div
-              key={item.ticker}
-              draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragEnter={() => handleDragEnter(index)}
-              onDragEnd={handleDragEnd}
-              onDragOver={(e) => e.preventDefault()}
-              className="bg-surface border border-border rounded-lg p-3 flex items-center gap-3 cursor-grab active:cursor-grabbing card-hover"
-            >
-              {/* Mobile reorder buttons */}
-              <div className="flex flex-col gap-0.5 md:hidden">
-                <button onClick={() => moveItem(index, "up")} className="text-muted hover:text-white text-xs">▲</button>
-                <button onClick={() => moveItem(index, "down")} className="text-muted hover:text-white text-xs">▼</button>
-              </div>
-
-              {/* Drag handle (desktop) */}
-              <span className="hidden md:block text-muted cursor-grab">⠿</span>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono font-bold text-white">{item.ticker}</span>
-                  {item.stock && (
-                    <>
-                      <span className="text-sm font-mono">{formatPrice(item.stock.price)}</span>
-                      <span className={cn(
-                        "text-xs font-mono",
-                        item.stock.changePercent >= 0 ? "text-profit" : "text-sell"
-                      )}>
-                        {item.stock.changePercent >= 0 ? "+" : ""}{item.stock.changePercent.toFixed(1)}%
-                      </span>
-                    </>
-                  )}
+            <motion.div key={item.ticker} variants={itemVariants}>
+              <Card
+                hover
+                padding="sm"
+                className="flex items-center gap-3 cursor-grab active:cursor-grabbing"
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragEnter={() => handleDragEnter(index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e: React.DragEvent) => e.preventDefault()}
+              >
+                {/* Mobile reorder buttons */}
+                <div className="flex flex-col gap-0.5 md:hidden">
+                  <Button variant="ghost" size="sm" onClick={() => moveItem(index, "up")} className="text-muted hover:text-white text-xs px-1 h-5">
+                    ▲
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => moveItem(index, "down")} className="text-muted hover:text-white text-xs px-1 h-5">
+                    ▼
+                  </Button>
                 </div>
-                {item.stock && (
-                  <div className="text-xs text-muted-2">
-                    Score: {item.stock.asymmetryScore}
-                    {item.previousScore !== null && item.stock.asymmetryScore !== item.previousScore && (
-                      <span className={item.stock.asymmetryScore > item.previousScore ? "text-profit ml-1" : "text-sell ml-1"}>
-                        {item.stock.asymmetryScore > item.previousScore ? "↑" : "↓"}
-                      </span>
+
+                {/* Drag handle (desktop) */}
+                <span className="hidden md:block text-muted cursor-grab">⠿</span>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-white">{item.ticker}</span>
+                    {item.stock && (
+                      <>
+                        <span className="text-sm font-mono">{formatPrice(item.stock.price)}</span>
+                        <span className={cn(
+                          "text-xs font-mono",
+                          item.stock.changePercent >= 0 ? "text-profit" : "text-sell"
+                        )}>
+                          {item.stock.changePercent >= 0 ? "+" : ""}{item.stock.changePercent.toFixed(1)}%
+                        </span>
+                      </>
                     )}
                   </div>
-                )}
-              </div>
+                  {item.stock && (
+                    <div className="text-xs text-muted-2">
+                      Score: {item.stock.asymmetryScore}
+                      {item.previousScore !== null && item.stock.asymmetryScore !== item.previousScore && (
+                        <span className={item.stock.asymmetryScore > item.previousScore ? "text-profit ml-1" : "text-sell ml-1"}>
+                          {item.stock.asymmetryScore > item.previousScore ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {/* Alert threshold */}
-              <div className="flex items-center gap-1" title="Alert me when score reaches this threshold (out of 100)">
-                <span className="text-[10px] text-muted">Score alert:</span>
-                <input
-                  type="number"
-                  value={item.alertThreshold}
-                  onChange={(e) => updateWatchlistThreshold(item.ticker, Number(e.target.value))}
-                  className="w-12 bg-surface-2 border border-border rounded px-1 py-0.5 text-xs font-mono text-center"
-                  min={0}
-                  max={100}
-                />
-              </div>
+                {/* Alert threshold */}
+                <div className="flex items-center gap-1" title="Alert me when score reaches this threshold (out of 100)">
+                  <span className="text-[10px] text-muted">Score alert:</span>
+                  <input
+                    type="number"
+                    value={item.alertThreshold}
+                    onChange={(e) => updateWatchlistThreshold(item.ticker, Number(e.target.value))}
+                    className="w-12 bg-surface-2 border border-border rounded px-1 py-0.5 text-xs font-mono text-center"
+                    min={0}
+                    max={100}
+                  />
+                </div>
 
-              <button
-                onClick={() => {
-                  removeFromWatchlist(item.ticker);
-                  toast.success(`${item.ticker} removed`);
-                }}
-                className="text-muted hover:text-sell transition-colors text-sm"
-              >
-                ×
-              </button>
-            </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    removeFromWatchlist(item.ticker);
+                    toast.success(`${item.ticker} removed`);
+                  }}
+                  className="text-muted hover:text-sell"
+                >
+                  ×
+                </Button>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
       {/* Mobile bottom nav spacer */}
       <div className="h-20 md:hidden" />

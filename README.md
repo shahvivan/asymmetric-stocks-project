@@ -43,13 +43,13 @@ Screen up to 500 stocks across Technology, Semiconductors, Financials, Healthcar
 
 | Factor | Points | What It Catches |
 |--------|--------|----------------|
-| **Volume Surge** | /15 | Institutional money flowing in — volume vs 20-day average |
+| **Volume Surge** | /16 | Institutional money flowing in — volume vs 20-day average |
 | **Breakout Proximity** | /12 | How close to 52-week highs — breakout candidates |
 | **Trend Position** | /12 | Price vs 20 & 50 day moving averages — riding the trend or fighting it |
 | **Momentum Acceleration** | /12 | Is momentum speeding up or slowing down? |
 | **RSI Sweet Spot** | /8 | RSI 55-65 is the momentum zone — strong but not overbought |
-| **Relative Strength** | /8 | Outperforming the S&P 500? Leaders, not laggers |
-| **Catalyst Proximity** | /10 | Upcoming earnings + macro events (FOMC, CPI, NFP) within 14 days |
+| **Relative Strength** | /10 | Outperforming the S&P 500? Leaders, not laggers |
+| **Catalyst Proximity** | /7 | Upcoming earnings + macro events (FOMC, CPI, NFP) within 14 days |
 | **IV Percentile** | /5 | Options market pricing in a big move |
 | **DeMark Sequential** | /10 | TD Buy Setup (9-count) and Countdown (13-count) — exhaustion signals |
 | **Volume Profile** | /8 | Zero overhead resistance, liquidity voids, and HVN support levels |
@@ -63,6 +63,9 @@ Stop-losses and take-profit targets scale automatically with historical volatili
 - **High volatility stocks**: Wider stops (10-12%) and wider targets
 - **Low volatility stocks**: Tighter stops (5-6%) and tighter targets
 - **Expected Move**: Calculated from 30-day HV to flag ambitious targets
+
+### 🛡️ Market Regime Filter
+The system automatically assesses the current market regime using VIX levels and SPY trend (price vs 50-day SMA). In bear markets (VIX > 30 or SPY below 50-SMA with elevated VIX), confluence requirements are raised — requiring 4+ signals for BUY and 5+ for STRONG BUY — and breakout scores are discounted since breakouts tend to fail in risk-off environments.
 
 ### 🤖 AI Stock Analyst
 Click any stock and ask the AI anything — *"Should I buy NVDA?"*, *"Give me a trade plan for AMD"*, *"What are the 3 biggest risks?"*. The AI doesn't just give you a generic answer. It sees the live price, the score breakdown, recent news, fundamentals, and current market conditions. It gives you specific entry prices, targets, stop-losses, and position sizes.

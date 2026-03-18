@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useApp } from "@/app/providers";
 import useSWR from "swr";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "./ui/Button";
 
 interface SearchResult {
   ticker: string;
@@ -55,11 +57,10 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
   const router = useRouter();
   const { settings, screenerData } = useApp();
   const [query, setQuery] = useState("");
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showOverlay, setShowOverlay] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [marketOpen, setMarketOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const modalInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
@@ -68,6 +69,31 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
     const interval = setInterval(() => setMarketOpen(isMarketOpen()), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Keyboard shortcut: Cmd+K to open search overlay
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowOverlay(true);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Focus modal input when overlay opens
+  useEffect(() => {
+    if (showOverlay) {
+      // Small delay to let the modal render
+      requestAnimationFrame(() => {
+        modalInputRef.current?.focus();
+      });
+    } else {
+      setQuery("");
+      setActiveIndex(-1);
+    }
+  }, [showOverlay]);
 
   // Debounce search query to avoid rapid API calls
   useEffect(() => {
@@ -89,12 +115,19 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
     { dedupingInterval: 300, revalidateOnFocus: false }
   );
 
+  // Default stocks to show when search is empty (top scored)
+  const defaultStocks = screenerData
+    .filter((s) => !s.ticker.includes("."))
+    .slice(0, 8)
+    .map((s) => ({ ticker: s.ticker, name: s.name, exchange: "" }));
+
   // Combine: local screener matches first (instant), then API results
   const localMatches = query.length >= 1
     ? screenerData
         .filter((s) =>
-          s.ticker.toLowerCase().includes(query.toLowerCase()) ||
-          s.name.toLowerCase().includes(query.toLowerCase())
+          !s.ticker.includes(".") &&
+          (s.ticker.toLowerCase().includes(query.toLowerCase()) ||
+          s.name.toLowerCase().includes(query.toLowerCase()))
         )
         .slice(0, 5)
         .map((s) => ({ ticker: s.ticker, name: s.name, exchange: "" }))
@@ -109,9 +142,10 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
     }
   );
 
-  // Merge local matches + API results, deduplicate by ticker
+  // Merge local matches + API results, deduplicate by ticker, filter foreign exchanges
   const results = (() => {
-    const apiResults = searchResults ?? [];
+    if (query.length === 0) return defaultStocks;
+    const apiResults = (searchResults ?? []).filter((r) => !r.ticker.includes("."));
     const seen = new Set<string>();
     const merged: SearchResult[] = [];
     for (const r of [...localMatches, ...apiResults]) {
@@ -130,12 +164,17 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
       router.push(`/?ticker=${item.ticker}&name=${encodeURIComponent(item.name)}`);
     }
     setQuery("");
-    setShowDropdown(false);
+    setShowOverlay(false);
     setActiveIndex(-1);
   }, [onSelectStock, router]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showDropdown || results.length === 0) return;
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setShowOverlay(false);
+      return;
+    }
+    if (results.length === 0 && e.key !== "Enter") return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActiveIndex((i) => (i + 1) % results.length);
@@ -144,7 +183,7 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
       setActiveIndex((i) => (i - 1 + results.length) % results.length);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeIndex >= 0) {
+      if (activeIndex >= 0 && results[activeIndex]) {
         handleSelect(results[activeIndex]);
       } else if (results.length > 0) {
         handleSelect(results[0]);
@@ -157,167 +196,199 @@ export default function Topbar({ onSelectStock, onRefresh, isRefreshing }: Topba
           router.push(`/?ticker=${ticker}&name=${ticker}`);
         }
         setQuery("");
-        setShowDropdown(false);
+        setShowOverlay(false);
       }
-    } else if (e.key === "Escape") {
-      setShowDropdown(false);
     }
   };
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(e.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   return (
-    <div className="topbar">
-      {/* Logo */}
-      <div className="topbar-logo">
-        <svg viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--blue)" }} />
-          <path d="M8 14l4-8 4 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--blue)" }} />
-        </svg>
-        <span>ASYMMETRIC</span>
-      </div>
+    <>
+      <div className="topbar">
+        {/* Logo — click to go home */}
+        <Link href="/" className="topbar-logo">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--blue)" }} />
+            <path d="M8 14l4-8 4 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--blue)" }} />
+          </svg>
+          <span>ASYMMETRIC</span>
+        </Link>
 
-      {/* Search */}
-      <div className="search-wrap">
-        <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <input
-          ref={inputRef}
-          type="text"
-          className="search-input min-h-[36px] md:min-h-0"
-          placeholder="Search stocks... (e.g. AAPL)"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setShowDropdown(true);
-            setActiveIndex(-1);
-          }}
-          onFocus={() => query.length >= 1 && setShowDropdown(true)}
-          onKeyDown={handleKeyDown}
-        />
-        {showDropdown && results.length > 0 && (
-          <div className="search-dropdown" ref={dropdownRef}>
-            {results.map((item, idx) => (
-              <div
-                key={item.ticker}
-                className={`search-item ${idx === activeIndex ? "active" : ""}`}
-                onClick={() => handleSelect(item)}
-                onMouseEnter={() => setActiveIndex(idx)}
-              >
-                <div style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
-                  <span className="search-item-ticker">{item.ticker}</span>
-                  <span className="search-item-name">{item.name}</span>
-                </div>
-                <span className="search-item-exchange">{item.exchange}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Nav Links */}
-      <div className="topbar-nav hidden md:flex">
-        {PRIMARY_NAV.map((link) => (
-          <Link
-            key={link.path}
-            href={link.path}
-            className={`topbar-nav-link ${pathname === link.path ? "active" : ""}`}
-          >
-            {link.label}
-          </Link>
-        ))}
-        <MoreDropdown items={SECONDARY_NAV} pathname={pathname} />
-      </div>
-
-      {/* Refresh Button */}
-      {onRefresh && (
+        {/* Search Trigger — opens the command palette overlay */}
         <button
-          className="topbar-refresh"
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          title={isRefreshing ? "Refreshing prices..." : "Refresh prices"}
-          style={{
-            background: "none",
-            border: "1px solid var(--bd)",
-            borderRadius: "6px",
-            padding: "4px 10px",
-            cursor: isRefreshing ? "wait" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "5px",
-            color: isRefreshing ? "var(--t-ghost)" : "var(--t-mid)",
-            fontSize: "12px",
-            fontWeight: 500,
-            transition: "all 0.15s ease",
-            flexShrink: 0,
-          }}
+          className="bg-white/[0.04] border border-white/[0.06] rounded-lg px-3 h-9 flex items-center gap-2 cursor-pointer hover:bg-white/[0.06] hover:border-white/[0.10] transition-all duration-150 flex-shrink-0 md:flex-[0_1_280px]"
+          onClick={() => setShowOverlay(true)}
         >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            style={{
-              width: "14px",
-              height: "14px",
-              animation: isRefreshing ? "spin 1s linear infinite" : "none",
+          <svg className="w-3.5 h-3.5 text-[var(--t-low)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <span className="text-xs text-[var(--t-ghost)] truncate hidden md:inline">Search stocks...</span>
+          <kbd className="hidden md:inline-flex items-center text-[10px] font-mono text-[var(--t-ghost)] bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08] ml-auto shrink-0">
+            ⌘K
+          </kbd>
+        </button>
+
+        {/* Nav Links */}
+        <div className="topbar-nav hidden md:flex">
+          {PRIMARY_NAV.map((link) => (
+            <Link
+              key={link.path}
+              href={link.path}
+              className={`topbar-nav-link relative ${pathname === link.path ? "active" : ""}`}
+            >
+              {link.label}
+              {pathname === link.path && (
+                <motion.div
+                  layoutId="nav-pill"
+                  className="absolute inset-0 bg-buy/10 rounded-md -z-10"
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                />
+              )}
+            </Link>
+          ))}
+          <MoreDropdown items={SECONDARY_NAV} pathname={pathname} />
+        </div>
+
+        {/* Refresh Button */}
+        {onRefresh && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            loading={isRefreshing}
+            title={isRefreshing ? "Refreshing prices..." : "Refresh prices"}
+            icon={
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5">
+                <path d="M21 2v6h-6M3 12a9 9 0 0115.5-6.36L21 8M3 22v-6h6M21 12a9 9 0 01-15.5 6.36L3 16" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            }
+          >
+            <span className="hidden md:inline">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+          </Button>
+        )}
+
+        {/* Market Indices */}
+        <div className="topbar-indices hidden md:flex">
+          {indices && indices.length > 0 ? (
+            indices.map((idx) => (
+              <div key={idx.label} className="index-item">
+                <span className="index-label">{idx.label}</span>
+                <span className="index-value">{idx.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                <span className={`index-change ${idx.change >= 0 ? "pos" : "neg"}`}>
+                  {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}%
+                </span>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="index-item">
+                <span className="index-label">S&P</span>
+                <span className="index-value" style={{ color: "var(--t-ghost)" }}>---</span>
+              </div>
+              <div className="index-item">
+                <span className="index-label">NDX</span>
+                <span className="index-value" style={{ color: "var(--t-ghost)" }}>---</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Market Status */}
+        <div className="market-status hidden md:flex">
+          <span className={`market-dot ${marketOpen ? "open" : "closed"}`} />
+          <span style={{ color: marketOpen ? "var(--green)" : "var(--red)" }}>
+            {marketOpen ? "OPEN" : "CLOSED"}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Command Palette Overlay ── */}
+      <AnimatePresence>
+        {showOverlay && (
+          <motion.div
+            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            onClick={(e) => {
+              // Close when clicking the backdrop (not the modal)
+              if (e.target === e.currentTarget) setShowOverlay(false);
             }}
           >
-            <path d="M21 2v6h-6M3 12a9 9 0 0115.5-6.36L21 8M3 22v-6h6M21 12a9 9 0 01-15.5 6.36L3 16" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="hidden md:inline">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
-        </button>
-      )}
+            <motion.div
+              className="w-full max-w-xl bg-[#141720] border border-white/[0.08] rounded-2xl shadow-2xl shadow-black/50 overflow-hidden outline-none"
+              initial={{ opacity: 0, scale: 0.98, y: -8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: -8 }}
+              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Search Input */}
+              <div className="flex items-center h-14 px-4 gap-3">
+                <svg className="w-5 h-5 text-[var(--t-low)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  ref={modalInputRef}
+                  type="text"
+                  className="flex-1 bg-transparent border-none outline-none ring-0 focus:ring-0 focus:outline-none text-base text-white placeholder:text-[var(--t-ghost)] h-full"
+                  placeholder="Search stocks..."
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setActiveIndex(-1);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <kbd className="inline-flex items-center text-[10px] font-mono text-[var(--t-ghost)] bg-white/[0.06] px-2 py-1 rounded border border-white/[0.08] shrink-0">
+                  ESC
+                </kbd>
+              </div>
 
-      {/* Market Indices */}
-      <div className="topbar-indices hidden md:flex">
-        {indices && indices.length > 0 ? (
-          indices.map((idx) => (
-            <div key={idx.label} className="index-item">
-              <span className="index-label">{idx.label}</span>
-              <span className="index-value">{idx.value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              <span className={`index-change ${idx.change >= 0 ? "pos" : "neg"}`}>
-                {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}%
-              </span>
-            </div>
-          ))
-        ) : (
-          <>
-            <div className="index-item">
-              <span className="index-label">S&P</span>
-              <span className="index-value" style={{ color: "var(--t-ghost)" }}>---</span>
-            </div>
-            <div className="index-item">
-              <span className="index-label">NDX</span>
-              <span className="index-value" style={{ color: "var(--t-ghost)" }}>---</span>
-            </div>
-          </>
+              {/* Divider + Results */}
+              {results.length > 0 && (
+                <>
+                  <div className="border-t border-white/[0.06]" />
+                  {query.length === 0 && (
+                    <div className="px-4 pt-3 pb-1 text-[10px] uppercase tracking-wider text-[var(--t-ghost)]">Top Stocks</div>
+                  )}
+                  <div className="max-h-[360px] overflow-y-auto py-2">
+                    {results.map((item, idx) => (
+                      <div
+                        key={item.ticker}
+                        className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors duration-75 ${
+                          idx === activeIndex
+                            ? "bg-white/[0.06]"
+                            : "hover:bg-white/[0.04]"
+                        }`}
+                        onClick={() => handleSelect(item)}
+                        onMouseEnter={() => setActiveIndex(idx)}
+                      >
+                        <span className="font-mono font-bold text-white text-sm">{item.ticker}</span>
+                        <span className="text-[var(--t-low)] text-sm truncate">{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Empty state when typing but no results */}
+              {query.length >= 1 && results.length === 0 && debouncedQuery.length >= 1 && (
+                <>
+                  <div className="border-t border-white/[0.06]" />
+                  <div className="px-4 py-8 text-center text-sm text-[var(--t-ghost)]">
+                    No results for &ldquo;{query}&rdquo;
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Market Status */}
-      <div className="market-status hidden md:flex">
-        <span className={`market-dot ${marketOpen ? "open" : "closed"}`} />
-        <span style={{ color: marketOpen ? "var(--green)" : "var(--red)" }}>
-          {marketOpen ? "OPEN" : "CLOSED"}
-        </span>
-      </div>
-    </div>
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -338,29 +409,35 @@ function MoreDropdown({ items, pathname }: { items: { path: string; label: strin
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className={`topbar-nav-link ${active ? "active" : ""}`}
-        style={{ display: "flex", alignItems: "center", gap: "4px" }}
+        className={`topbar-nav-link flex items-center gap-1 ${active ? "active" : ""}`}
       >
         More
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5">
           <path d={open ? "M2 6.5L5 3.5L8 6.5" : "M2 3.5L5 6.5L8 3.5"} />
         </svg>
       </button>
-      {open && (
-        <div className="topbar-more-dropdown">
-          {items.map((item) => (
-            <Link
-              key={item.path}
-              href={item.path}
-              onClick={() => setOpen(false)}
-              className={`topbar-nav-link ${pathname === item.path ? "active" : ""}`}
-              style={{ display: "block", padding: "8px 16px", borderRadius: 0 }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            className="topbar-more-dropdown"
+          >
+            {items.map((item) => (
+              <Link
+                key={item.path}
+                href={item.path}
+                onClick={() => setOpen(false)}
+                className={`topbar-nav-link block px-4 py-2 rounded-none ${pathname === item.path ? "active" : ""}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

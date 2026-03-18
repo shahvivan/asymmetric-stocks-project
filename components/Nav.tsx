@@ -1,8 +1,10 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 const NAV_ITEMS = [
   { path: "/", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
@@ -36,10 +38,17 @@ export default function Nav() {
                 key={item.path}
                 href={item.path}
                 className={cn(
-                  "flex flex-col items-center py-2.5 px-3 text-[10px] font-medium transition-colors",
+                  "relative flex flex-col items-center py-2.5 px-3 text-[10px] font-medium transition-colors",
                   active ? "text-buy" : "text-muted"
                 )}
               >
+                {active && (
+                  <motion.div
+                    layoutId="mobile-nav-pill"
+                    className="absolute inset-0 bg-buy/10 rounded-lg -z-10"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
                 <svg
                   className="w-[22px] h-[22px] mb-0.5"
                   fill="none"
@@ -113,6 +122,3 @@ function MoreMenu({
     </div>
   );
 }
-
-// Need React import for MoreMenu useState
-import React from "react";

@@ -5,6 +5,7 @@ import { useApp } from "../providers";
 import { formatPrice, formatPercent, formatDate, cn } from "@/lib/utils";
 import { analyzePatterns } from "@/lib/patterns";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { motion } from "framer-motion";
 
 type SortKey = "exitDate" | "realizedPnl" | "realizedPnlPercent" | "daysHeld" | "ticker";
 
@@ -71,12 +72,14 @@ export default function JournalPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
-      <h1 className="text-xl font-bold">Trade Journal</h1>
+    <div className="p-5 md:p-8 space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight">Trade Journal</h1>
 
       {completedTrades.length === 0 ? (
-        <div className="text-center py-16 text-muted">
-          No completed trades yet. Exit a position in Portfolio to see it here.
+        <div className="text-center py-20 text-muted">
+          <div className="text-4xl mb-3 opacity-30">📊</div>
+          <p className="text-sm">No completed trades yet.</p>
+          <p className="text-xs text-muted-2 mt-1">Exit a position in Portfolio to see it here.</p>
         </div>
       ) : (
         <>
@@ -96,54 +99,61 @@ export default function JournalPage() {
 
           {/* Charts */}
           {monthlyData.length > 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-surface border border-border rounded-lg p-4 card-hover">
-                <div className="text-xs text-muted mb-2">Monthly P&L</div>
-                <ResponsiveContainer width="100%" height={150}>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
+            >
+              <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5">
+                <div className="text-xs font-medium text-muted mb-3 uppercase tracking-wider">Monthly P&L</div>
+                <ResponsiveContainer width="100%" height={170}>
                   <BarChart data={monthlyData}>
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#4e5470" }} />
-                    <YAxis tick={{ fontSize: 10, fill: "#4e5470" }} />
-                    <Tooltip contentStyle={{ background: "#101217", border: "1px solid rgba(255,255,255,0.09)", fontSize: 12 }} />
-                    <Bar dataKey="pnl" fill="#4f8ef7" />
+                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: "#4e5470" }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 10, fill: "#4e5470" }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ background: "#101217", border: "1px solid rgba(255,255,255,0.06)", fontSize: 12, borderRadius: 8 }} />
+                    <Bar dataKey="pnl" fill="#4f8ef7" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               {cumulativeData.length > 1 && (
-                <div className="bg-surface border border-border rounded-lg p-4 card-hover">
-                  <div className="text-xs text-muted mb-2">Cumulative Growth</div>
-                  <ResponsiveContainer width="100%" height={150}>
+                <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5">
+                  <div className="text-xs font-medium text-muted mb-3 uppercase tracking-wider">Cumulative Growth</div>
+                  <ResponsiveContainer width="100%" height={170}>
                     <LineChart data={cumulativeData}>
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#4e5470" }} />
-                      <YAxis tick={{ fontSize: 10, fill: "#4e5470" }} />
-                      <Tooltip contentStyle={{ background: "#101217", border: "1px solid rgba(255,255,255,0.09)", fontSize: 12 }} />
+                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#4e5470" }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 10, fill: "#4e5470" }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: "#101217", border: "1px solid rgba(255,255,255,0.06)", fontSize: 12, borderRadius: 8 }} />
                       <Line type="monotone" dataKey="value" stroke="#00d4aa" dot={false} strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
 
           {/* Patterns */}
           {patterns.length > 0 && (
-            <div className="bg-surface border border-border rounded-lg p-4">
-              <div className="text-sm font-bold text-white mb-2">Pattern Recognition</div>
-              {patterns.map((p, i) => (
-                <div key={i} className={cn(
-                  "text-xs py-1 flex items-start gap-2",
-                  p.severity === "warning" ? "text-monitor" : p.severity === "positive" ? "text-profit" : "text-muted-2"
-                )}>
-                  <span>{p.severity === "warning" ? "⚠" : p.severity === "positive" ? "✓" : "ℹ"}</span>
-                  <span>{p.insight}</span>
-                </div>
-              ))}
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5">
+              <div className="text-sm font-semibold text-white mb-3">Pattern Recognition</div>
+              <div className="space-y-2">
+                {patterns.map((p, i) => (
+                  <div key={i} className={cn(
+                    "text-xs py-1.5 flex items-start gap-2.5",
+                    p.severity === "warning" ? "text-monitor" : p.severity === "positive" ? "text-profit" : "text-muted-2"
+                  )}>
+                    <span className="mt-0.5">{p.severity === "warning" ? "⚠" : p.severity === "positive" ? "✓" : "ℹ"}</span>
+                    <span>{p.insight}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
           {/* Trade History — Mobile Cards */}
-          <div className="md:hidden space-y-2">
+          <div className="md:hidden space-y-2.5">
             {sorted.map((t) => (
-              <div key={t.id} className="bg-surface border border-border rounded-lg p-3 space-y-1.5">
+              <div key={t.id} className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3.5 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-bold text-white">{t.ticker}</span>
                   <span className="text-xs text-muted-2">{formatDate(t.exitDate)}</span>
@@ -166,33 +176,35 @@ export default function JournalPage() {
           </div>
 
           {/* Trade History — Desktop Table */}
-          <div className="hidden md:block border border-border rounded-lg overflow-x-auto md:max-h-[calc(100vh-500px)] md:overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-surface-2 text-muted text-xs sticky-thead">
-                  {([["ticker", "Ticker"], ["exitDate", "Date"], ["realizedPnl", "P&L $"], ["realizedPnlPercent", "P&L %"], ["daysHeld", "Days"]] as [SortKey, string][]).map(([key, label]) => (
-                    <th key={key} onClick={() => handleSort(key)} className="px-3 py-2 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap">
-                      {label} {sortKey === key && (sortDir === "asc" ? "▲" : "▼")}
-                    </th>
-                  ))}
-                  <th className="px-3 py-2 text-left">Entry</th>
-                  <th className="px-3 py-2 text-left">Exit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((t) => (
-                  <tr key={t.id} className="border-t border-border hover:bg-white/5">
-                    <td className="px-3 py-2 font-mono font-bold">{t.ticker}</td>
-                    <td className="px-3 py-2 text-muted-2">{formatDate(t.exitDate)}</td>
-                    <td className={cn("px-3 py-2 font-mono", t.won ? "text-profit" : "text-sell")}>{t.won ? "+" : ""}{formatPrice(t.realizedPnl)}</td>
-                    <td className={cn("px-3 py-2 font-mono", t.won ? "text-profit" : "text-sell")}>{formatPercent(t.realizedPnlPercent)}</td>
-                    <td className="px-3 py-2 font-mono text-muted-2">{t.daysHeld}d</td>
-                    <td className="px-3 py-2 font-mono text-muted-2">{formatPrice(t.buyPrice)}</td>
-                    <td className="px-3 py-2 font-mono text-muted-2">{formatPrice(t.exitPrice)}</td>
+          <div className="hidden md:block bg-surface/30 border border-white/[0.06] rounded-xl overflow-hidden">
+            <div className="overflow-x-auto md:max-h-[calc(100vh-500px)] md:overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/[0.06]">
+                    {([["ticker", "Ticker"], ["exitDate", "Date"], ["realizedPnl", "P&L $"], ["realizedPnlPercent", "P&L %"], ["daysHeld", "Days"]] as [SortKey, string][]).map(([key, label]) => (
+                      <th key={key} onClick={() => handleSort(key)} className="px-4 py-3 text-left cursor-pointer hover:text-white transition-colors whitespace-nowrap text-[11px] uppercase tracking-wider text-muted font-medium">
+                        {label} {sortKey === key && (sortDir === "asc" ? "▲" : "▼")}
+                      </th>
+                    ))}
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-muted font-medium">Entry</th>
+                    <th className="px-4 py-3 text-left text-[11px] uppercase tracking-wider text-muted font-medium">Exit</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sorted.map((t) => (
+                    <tr key={t.id} className="border-t border-white/[0.04] hover:bg-white/[0.03] transition-colors">
+                      <td className="px-4 py-3 font-mono font-bold text-white">{t.ticker}</td>
+                      <td className="px-4 py-3 text-muted-2">{formatDate(t.exitDate)}</td>
+                      <td className={cn("px-4 py-3 font-mono", t.won ? "text-profit" : "text-sell")}>{t.won ? "+" : ""}{formatPrice(t.realizedPnl)}</td>
+                      <td className={cn("px-4 py-3 font-mono", t.won ? "text-profit" : "text-sell")}>{formatPercent(t.realizedPnlPercent)}</td>
+                      <td className="px-4 py-3 font-mono text-muted-2">{t.daysHeld}d</td>
+                      <td className="px-4 py-3 font-mono text-muted-2">{formatPrice(t.buyPrice)}</td>
+                      <td className="px-4 py-3 font-mono text-muted-2">{formatPrice(t.exitPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
           {/* Mobile bottom nav spacer */}
           <div className="h-20 md:hidden" />
@@ -204,9 +216,9 @@ export default function JournalPage() {
 
 function MiniStat({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <div className="bg-surface border border-border rounded-lg p-2 card-hover">
-      <div className="text-[10px] text-muted">{label}</div>
-      <div className={cn("text-sm font-mono font-bold", color || "text-white")}>{value}</div>
+    <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-3.5 hover:bg-white/[0.04] transition-colors">
+      <div className="text-[10px] text-muted uppercase tracking-wider font-medium">{label}</div>
+      <div className={cn("text-base font-mono font-bold mt-1", color || "text-white")}>{value}</div>
     </div>
   );
 }

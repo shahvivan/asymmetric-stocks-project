@@ -6,6 +6,9 @@ import { useApp } from "../providers";
 import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import SetupPrompt from "@/components/SetupPrompt";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { motion } from "framer-motion";
 
 interface IndexData {
   label: string;
@@ -38,6 +41,18 @@ function getRelativeTime(timestamp: number): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
+
+const staggerContainer = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
+};
 
 export default function IntelligencePage() {
   const { screenerData, settings } = useApp();
@@ -162,168 +177,311 @@ OUTPUT FORMAT:
   }, [settings.groqApiKey, sectorPerformance, indices, marketNews, breadth]);
 
   return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-5">
+    <div className="p-5 md:p-8 space-y-6 md:space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg md:text-xl font-bold">Market Intelligence</h1>
-          <p className="text-[10px] md:text-xs text-muted mt-0.5">Global trends, sector performance &amp; market overview</p>
+          <h1 className="text-2xl font-bold tracking-tight">Market Intelligence</h1>
+          <p className="text-xs text-muted/70 mt-1">Global trends, sector performance &amp; market overview</p>
         </div>
         {hasGroqKey && (
-          <button
+          <Button
             onClick={fetchMarketBriefing}
             disabled={briefingLoading || screenerData.length === 0}
-            className="px-3 md:px-4 py-2 min-h-[44px] bg-buy/10 text-buy text-xs md:text-sm rounded-lg border border-buy/20 hover:bg-buy/20 transition-colors disabled:opacity-50"
+            loading={briefingLoading}
+            variant="secondary"
+            size="md"
+            className="bg-buy/10 text-buy border-buy/20 hover:bg-buy/20"
           >
             {briefingLoading ? "Analyzing..." : "Get Market Briefing"}
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Market Indices */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="show"
+      >
         {indices && indices.length > 0 ? indices.map((idx) => (
-          <div key={idx.label} className="bg-surface border border-border rounded-lg p-2 md:p-3 card-hover">
-            <div className="text-[10px] md:text-xs text-muted mb-0.5 md:mb-1">{idx.label}</div>
-            <div className="font-mono text-white font-bold text-sm md:text-base">{idx.value.toLocaleString()}</div>
-            <div className={cn("font-mono text-[10px] md:text-xs mt-0.5", idx.change >= 0 ? "text-profit" : "text-sell")}>
-              {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}%
+          <motion.div key={idx.label} variants={staggerItem}>
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 md:p-5 hover:bg-white/[0.05] hover:border-white/[0.1] transition-all duration-300 group">
+              <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider mb-1.5">{idx.label}</div>
+              <div className="font-mono text-white font-bold text-xl md:text-2xl tracking-tight">{idx.value.toLocaleString()}</div>
+              <div
+                className={cn(
+                  "font-mono text-xs md:text-sm mt-1 font-semibold",
+                  idx.change >= 0 ? "text-profit" : "text-sell"
+                )}
+                style={{
+                  textShadow: idx.change >= 0
+                    ? "0 0 12px rgba(34,197,94,0.4)"
+                    : "0 0 12px rgba(239,68,68,0.4)",
+                }}
+              >
+                {idx.change >= 0 ? "+" : ""}{idx.change.toFixed(2)}%
+              </div>
             </div>
-          </div>
+          </motion.div>
         )) : (
           Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-surface border border-border rounded-lg p-2 md:p-3 animate-pulse">
-              <div className="h-3 bg-white/10 rounded w-16 mb-2" />
-              <div className="h-5 bg-white/10 rounded w-20 mb-1" />
-              <div className="h-3 bg-white/10 rounded w-12" />
-            </div>
+            <motion.div key={i} variants={staggerItem}>
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 md:p-5 animate-pulse">
+                <div className="h-3 bg-white/10 rounded w-16 mb-3" />
+                <div className="h-6 bg-white/10 rounded w-20 mb-2" />
+                <div className="h-3 bg-white/10 rounded w-12" />
+              </div>
+            </motion.div>
           ))
         )}
-      </div>
+      </motion.div>
+
+      {/* Market Regime Badge */}
+      {indices && indices.length > 0 && (() => {
+        const vixEntry = indices.find((idx) => idx.label === "VIX");
+        if (!vixEntry) return null;
+        const vix = vixEntry.value;
+        const regime = vix < 20 ? "risk-on" : vix <= 25 ? "neutral" : "risk-off";
+        const config = {
+          "risk-on": { label: "Risk-On", color: "text-profit", bg: "bg-profit/10", border: "border-profit/30", glow: "rgba(34,197,94,0.3)" },
+          "neutral": { label: "Neutral", color: "text-monitor", bg: "bg-monitor/10", border: "border-monitor/30", glow: "rgba(234,179,8,0.3)" },
+          "risk-off": { label: "Risk-Off", color: "text-sell", bg: "bg-sell/10", border: "border-sell/30", glow: "rgba(239,68,68,0.3)" },
+        }[regime];
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-3"
+          >
+            <div className={cn(
+              "inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold",
+              config.bg, config.border, config.color
+            )} style={{ textShadow: `0 0 12px ${config.glow}` }}>
+              <div className={cn("w-2 h-2 rounded-full animate-pulse", regime === "risk-on" ? "bg-profit" : regime === "neutral" ? "bg-monitor" : "bg-sell")} />
+              Market Regime: {config.label}
+            </div>
+            <span className="text-xs text-muted">VIX at {vix.toFixed(1)}</span>
+          </motion.div>
+        );
+      })()}
 
       {/* Market Breadth */}
       {breadth && (
-        <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-          <div className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider mb-2 md:mb-3">Market Breadth</div>
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4 text-center">
-            <div>
-              <div className="text-xl md:text-2xl font-bold text-profit">{breadth.up}</div>
-              <div className="text-[10px] md:text-xs text-muted">Advancing</div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5 md:p-6 shadow-[0_0_30px_rgba(79,142,247,0.05)]">
+            <div className="text-xs font-bold text-white uppercase tracking-wider mb-4">Market Breadth</div>
+            <motion.div
+              className="grid grid-cols-3 md:grid-cols-5 gap-3 md:gap-6 text-center"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="show"
+            >
+              <motion.div variants={staggerItem} className="space-y-1">
+                <div className="text-2xl md:text-3xl font-mono font-bold text-profit" style={{ textShadow: "0 0 20px rgba(34,197,94,0.3)" }}>{breadth.up}</div>
+                <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider">Advancing</div>
+              </motion.div>
+              <motion.div variants={staggerItem} className="space-y-1">
+                <div className="text-2xl md:text-3xl font-mono font-bold text-sell" style={{ textShadow: "0 0 20px rgba(239,68,68,0.3)" }}>{breadth.down}</div>
+                <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider">Declining</div>
+              </motion.div>
+              <motion.div variants={staggerItem} className="space-y-1">
+                <div className="text-2xl md:text-3xl font-mono font-bold text-muted-2">{breadth.unchanged}</div>
+                <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider">Unchanged</div>
+              </motion.div>
+              <motion.div variants={staggerItem} className="space-y-1">
+                <div
+                  className={cn("text-2xl md:text-3xl font-mono font-bold", breadth.avgChange >= 0 ? "text-profit" : "text-sell")}
+                  style={{
+                    textShadow: breadth.avgChange >= 0
+                      ? "0 0 20px rgba(34,197,94,0.3)"
+                      : "0 0 20px rgba(239,68,68,0.3)",
+                  }}
+                >
+                  {breadth.avgChange >= 0 ? "+" : ""}{breadth.avgChange.toFixed(2)}%
+                </div>
+                <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider">Avg Change</div>
+              </motion.div>
+              <motion.div variants={staggerItem} className="space-y-1">
+                <div className="text-2xl md:text-3xl font-mono font-bold text-buy" style={{ textShadow: "0 0 20px rgba(59,130,246,0.3)" }}>{breadth.buySignals}</div>
+                <div className="text-[10px] md:text-xs text-muted/60 uppercase tracking-wider">Buy Signals</div>
+              </motion.div>
+            </motion.div>
+            {/* Breadth bar */}
+            <div className="mt-5 h-2.5 rounded-full overflow-hidden flex bg-white/[0.06]">
+              <motion.div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                initial={{ width: 0 }}
+                animate={{ width: `${(breadth.up / breadth.total) * 100}%` }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              />
+              <div className="bg-white/[0.12] h-full" style={{ width: `${(breadth.unchanged / breadth.total) * 100}%` }} />
+              <motion.div
+                className="h-full bg-gradient-to-r from-red-400 to-red-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${(breadth.down / breadth.total) * 100}%` }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+              />
             </div>
-            <div>
-              <div className="text-xl md:text-2xl font-bold text-sell">{breadth.down}</div>
-              <div className="text-[10px] md:text-xs text-muted">Declining</div>
-            </div>
-            <div>
-              <div className="text-xl md:text-2xl font-bold text-muted-2">{breadth.unchanged}</div>
-              <div className="text-[10px] md:text-xs text-muted">Unchanged</div>
-            </div>
-            <div>
-              <div className={cn("text-xl md:text-2xl font-bold", breadth.avgChange >= 0 ? "text-profit" : "text-sell")}>
-                {breadth.avgChange >= 0 ? "+" : ""}{breadth.avgChange.toFixed(2)}%
-              </div>
-              <div className="text-[10px] md:text-xs text-muted">Avg Change</div>
-            </div>
-            <div>
-              <div className="text-xl md:text-2xl font-bold text-buy">{breadth.buySignals}</div>
-              <div className="text-[10px] md:text-xs text-muted">Buy Signals</div>
+            <div className="flex justify-between text-[10px] text-muted/50 mt-2">
+              <span>{((breadth.up / breadth.total) * 100).toFixed(0)}% up</span>
+              <span>{((breadth.down / breadth.total) * 100).toFixed(0)}% down</span>
             </div>
           </div>
-          {/* Breadth bar */}
-          <div className="mt-3 h-2 rounded-full overflow-hidden flex bg-white/10">
-            <div className="bg-profit h-full" style={{ width: `${(breadth.up / breadth.total) * 100}%` }} />
-            <div className="bg-white/20 h-full" style={{ width: `${(breadth.unchanged / breadth.total) * 100}%` }} />
-            <div className="bg-sell h-full" style={{ width: `${(breadth.down / breadth.total) * 100}%` }} />
-          </div>
-          <div className="flex justify-between text-[10px] text-muted mt-1">
-            <span>{((breadth.up / breadth.total) * 100).toFixed(0)}% up</span>
-            <span>{((breadth.down / breadth.total) * 100).toFixed(0)}% down</span>
-          </div>
-        </div>
+        </motion.div>
       )}
 
       {/* AI Market Briefing */}
       {marketBriefing && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-            <div className="text-[10px] md:text-xs font-bold text-buy mb-1.5 md:mb-2 uppercase tracking-wider">Market Overview</div>
-            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.overview}</p>
-          </div>
-          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-            <div className="text-[10px] md:text-xs font-bold text-profit mb-1.5 md:mb-2 uppercase tracking-wider">Sector Analysis</div>
-            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.sectors}</p>
-          </div>
-          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-            <div className="text-[10px] md:text-xs font-bold text-monitor mb-1.5 md:mb-2 uppercase tracking-wider">Short-Term Outlook</div>
-            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.outlook}</p>
-          </div>
-          <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-            <div className="text-[10px] md:text-xs font-bold text-sell mb-1.5 md:mb-2 uppercase tracking-wider">Key Risks</div>
-            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.risks}</p>
-          </div>
-          <div className="md:col-span-2 bg-buy/5 border border-buy/20 rounded-lg p-3 md:p-4">
-            <div className="text-[10px] md:text-xs font-bold text-buy mb-1.5 md:mb-2 uppercase tracking-wider">Opportunities</div>
-            <p className="text-xs md:text-sm text-muted-2 leading-relaxed">{marketBriefing.opportunities}</p>
-          </div>
-        </div>
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div variants={staggerItem}>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 h-full hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="buy" size="sm">Overview</Badge>
+              </div>
+              <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.overview}</p>
+            </div>
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 h-full hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="strong-buy" size="sm">Sectors</Badge>
+              </div>
+              <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.sectors}</p>
+            </div>
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 h-full hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="monitor" size="sm">Outlook</Badge>
+              </div>
+              <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.outlook}</p>
+            </div>
+          </motion.div>
+          <motion.div variants={staggerItem}>
+            <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-5 h-full hover:bg-white/[0.04] hover:border-white/[0.1] transition-all duration-300">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="sell" size="sm">Risks</Badge>
+              </div>
+              <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.risks}</p>
+            </div>
+          </motion.div>
+          <motion.div variants={staggerItem} className="md:col-span-2">
+            <div className="bg-white/[0.02] border border-purple-500/20 rounded-xl p-5 hover:bg-white/[0.04] hover:border-purple-500/30 transition-all duration-300 shadow-[0_0_30px_rgba(168,85,247,0.06)]">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1 h-4 rounded-full bg-gradient-to-b from-purple-400 to-blue-500" />
+                <Badge variant="buy" size="sm">Opportunities</Badge>
+                <span className="text-[10px] text-purple-400/60 uppercase tracking-wider ml-1">AI Insight</span>
+              </div>
+              <p className="text-sm text-muted-2 leading-relaxed">{marketBriefing.opportunities}</p>
+            </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Sector Performance */}
       {sectorPerformance.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-          <div className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider mb-2 md:mb-3">Sector Performance</div>
-          <div className="space-y-2 overflow-x-auto">
-            {sectorPerformance.map((sector) => (
-              <div key={sector.sector} className="flex items-center gap-2 md:gap-3 min-w-0">
-                <div className="w-24 md:w-32 text-[10px] md:text-xs text-muted truncate shrink-0">{sector.sector.replace("_", " ")}</div>
-                <div className="flex-1 h-4 md:h-5 bg-white/5 rounded-full overflow-hidden relative min-w-[60px]">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5 md:p-6 shadow-[0_0_30px_rgba(79,142,247,0.05)]">
+            <div className="text-xs font-bold text-white uppercase tracking-wider mb-4">Sector Performance</div>
+            <motion.div
+              className="space-y-3 overflow-x-auto"
+              variants={staggerContainer}
+              initial="hidden"
+              animate="show"
+            >
+              {sectorPerformance.map((sector) => (
+                <motion.div
+                  key={sector.sector}
+                  variants={staggerItem}
+                  className="flex items-center gap-3 md:gap-4 min-w-0"
+                >
+                  <div className="w-28 md:w-36 text-xs text-muted/70 truncate shrink-0">{sector.sector.replace("_", " ")}</div>
+                  <div className="flex-1 h-5 md:h-6 bg-white/[0.04] rounded-full overflow-hidden relative min-w-[80px]">
+                    <motion.div
+                      className={cn(
+                        "h-full rounded-full",
+                        sector.avgChange >= 0
+                          ? "bg-gradient-to-r from-emerald-500/50 to-emerald-400/30"
+                          : "bg-gradient-to-r from-red-500/50 to-red-400/30"
+                      )}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(Math.abs(sector.avgChange) * 10, 100)}%` }}
+                      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                      style={{ marginLeft: sector.avgChange < 0 ? "auto" : undefined }}
+                    />
+                  </div>
                   <div
                     className={cn(
-                      "h-full rounded-full transition-all",
-                      sector.avgChange >= 0 ? "bg-profit/40" : "bg-sell/40"
+                      "w-16 md:w-20 text-right font-mono text-xs md:text-sm font-semibold shrink-0",
+                      sector.avgChange >= 0 ? "text-profit" : "text-sell"
                     )}
-                    style={{ width: `${Math.min(Math.abs(sector.avgChange) * 10, 100)}%`, marginLeft: sector.avgChange < 0 ? "auto" : undefined }}
-                  />
-                </div>
-                <div className={cn("w-14 md:w-16 text-right font-mono text-[10px] md:text-xs shrink-0", sector.avgChange >= 0 ? "text-profit" : "text-sell")}>
-                  {sector.avgChange >= 0 ? "+" : ""}{sector.avgChange.toFixed(2)}%
-                </div>
-                <div className="w-20 text-xs text-muted hidden md:block">
-                  <span className="text-profit">{sector.topMover.ticker}</span>
-                </div>
-              </div>
-            ))}
+                    style={{
+                      textShadow: sector.avgChange >= 0
+                        ? "0 0 8px rgba(34,197,94,0.3)"
+                        : "0 0 8px rgba(239,68,68,0.3)",
+                    }}
+                  >
+                    {sector.avgChange >= 0 ? "+" : ""}{sector.avgChange.toFixed(2)}%
+                  </div>
+                  <div className="w-24 text-xs text-muted/50 hidden md:block">
+                    <span className="text-profit/80 font-mono">{sector.topMover.ticker}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Market News */}
       {marketNews && marketNews.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg p-3 md:p-4">
-          <div className="text-[10px] md:text-xs font-bold text-white uppercase tracking-wider mb-2 md:mb-3">Latest Market News</div>
-          <div className="space-y-1 md:space-y-3">
-            {marketNews.slice(0, 8).map((article) => (
-              <a
-                key={article.id}
-                href={article.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block hover:bg-white/5 md:news-hover rounded-lg p-2 -mx-2 transition-colors min-h-[44px] flex items-center"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs md:text-sm text-white leading-snug line-clamp-2">{article.headline}</div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-muted">{article.source}</span>
-                      <span className="text-[10px] text-muted">•</span>
-                      <span className="text-[10px] text-muted">{getRelativeTime(article.datetime)}</span>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div className="bg-surface/50 backdrop-blur-sm border border-white/[0.06] rounded-xl p-5 md:p-6">
+            <div className="text-xs font-bold text-white uppercase tracking-wider mb-4">Latest Market News</div>
+            <div className="space-y-1">
+              {marketNews.slice(0, 8).map((article) => (
+                <a
+                  key={article.id}
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block hover:bg-white/[0.04] rounded-lg p-3 -mx-1 transition-all duration-200 min-h-[44px] flex items-center group"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm text-white/90 leading-snug line-clamp-2 group-hover:text-white transition-colors">{article.headline}</div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-[10px] text-muted/50 uppercase tracking-wider">{article.source}</span>
+                        <span className="text-[10px] text-muted/30">|</span>
+                        <span className="text-[10px] text-muted/50">{getRelativeTime(article.datetime)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </a>
-            ))}
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Setup prompts */}

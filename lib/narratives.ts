@@ -4,53 +4,117 @@ export function generateWhyNarrative(stock: EnrichedStock): string[] {
   const reasons: string[] = [];
   const b = stock.breakdown;
 
+  // RSI signal
   if (b.rsi && b.rsi.points >= 18) {
-    reasons.push(`This stock has been beaten down recently and looks oversold — historically, stocks at this level tend to bounce back.`);
+    reasons.push(`RSI at ${stock.rsi?.toFixed(0)} indicates oversold conditions — historically, stocks at this level tend to bounce back within weeks.`);
   } else if (b.rsi && b.rsi.points >= 10) {
-    reasons.push(`The price has dropped enough that it's entering "buy the dip" territory — could be a good entry point.`);
+    reasons.push(`RSI at ${stock.rsi?.toFixed(0)} suggests the pullback may be overdone — entering favorable buy territory.`);
   }
 
+  // Near 52-week low
   if (b.low && b.low.points >= 15) {
-    reasons.push(`It's trading near its lowest price in a year (only ${stock.pctFromLow.toFixed(0)}% above the bottom) — lots of room to grow, limited downside.`);
+    reasons.push(`Trading just ${stock.pctFromLow.toFixed(0)}% above its 52-week low — significant upside room with limited downside from here.`);
   }
 
+  // High volume
   if (b.volume && b.volume.points >= 12) {
-    reasons.push(`Trading volume is ${stock.volumeRatio.toFixed(1)}x higher than normal — big players are buying in, which usually means they know something.`);
+    reasons.push(`Volume is ${stock.volumeRatio.toFixed(1)}x above average — institutional accumulation typically precedes price moves.`);
   }
 
+  // Near 52-week high (breakout potential)
+  if (stock.pctFromHigh < 5 && stock.changePercent > 0) {
+    reasons.push(`Within ${stock.pctFromHigh.toFixed(0)}% of its 52-week high with positive momentum — breakout above resistance could trigger further gains.`);
+  }
+
+  // Momentum
+  if (stock.momentum !== null && stock.momentum > 1.5) {
+    reasons.push(`Strong momentum of ${stock.momentum.toFixed(1)} — the stock is outperforming the broader market on a relative basis.`);
+  }
+
+  // Beta leverage
   if (b.beta && b.beta.points >= 12) {
-    reasons.push(`This stock moves more than the market (${stock.beta.toFixed(1)}x) — when the market goes up, this one goes up even more.`);
+    reasons.push(`Beta of ${stock.beta.toFixed(1)} provides leveraged upside exposure — gains amplified in rising markets.`);
   }
 
+  // Earnings catalyst
   if (b.earnings && b.earnings.points >= 8) {
-    reasons.push(`Earnings report coming in ${stock.daysToEarnings} days — good results could send this stock flying.`);
+    reasons.push(`Earnings report in ${stock.daysToEarnings} days — positive results could catalyze a significant move higher.`);
   }
 
+  // Low IV
   if (b.iv && b.iv.points >= 7) {
-    reasons.push(`Market expectations are low right now — if anything positive happens, the price reaction could be outsized.`);
+    reasons.push(`Implied volatility percentile is low — market expectations are subdued, creating potential for outsized price reaction on positive news.`);
+  }
+
+  // DeMark signals
+  if (stock.demark?.buySetup9) {
+    reasons.push(`TD Sequential Buy 9 setup completed — a well-known exhaustion signal suggesting the selling pressure is fading.`);
+  }
+  if (stock.demark?.buyCountdown13) {
+    reasons.push(`TD Sequential Buy Countdown 13 confirmed — this is the strongest DeMark reversal signal, indicating a potential trend change.`);
+  }
+
+  // Volume Profile
+  if (stock.volumeProfile?.hasZeroOverhead) {
+    reasons.push(`Volume profile shows zero overhead resistance — minimal selling pressure above the current price level.`);
   }
 
   if (reasons.length === 0) {
-    reasons.push(`Multiple factors are lining up in favor of this stock — it scored ${stock.asymmetryScore}/100 on our analysis.`);
+    reasons.push(`Multiple technical factors align for ${stock.ticker} — composite score of ${stock.asymmetryScore}/100 reflects cumulative strength across indicators.`);
   }
 
   return reasons.slice(0, 3);
 }
 
-export function generateRiskNarrative(stock: EnrichedStock): string {
-  if (stock.rsi !== null && stock.rsi >= 60) {
-    return `The stock has already run up recently — it might pull back before going higher. Keep a tight stop loss.`;
+export function generateRiskNarrative(stock: EnrichedStock): string[] {
+  const risks: string[] = [];
+
+  // Overbought
+  if (stock.rsi !== null && stock.rsi >= 55) {
+    risks.push(`RSI at ${stock.rsi.toFixed(0)} is approaching overbought territory — the higher it goes, the greater the pullback risk.`);
   }
-  if (stock.pctFromHigh < 10) {
-    return `It's already close to its yearly high — there's less room to grow and more room to fall from here.`;
+
+  // Near highs — resistance risk
+  if (stock.pctFromHigh < 15) {
+    risks.push(`Only ${stock.pctFromHigh.toFixed(0)}% from 52-week high — historical resistance at this level often causes sellers to take profits.`);
   }
-  if (stock.beta >= 1.8) {
-    return `This is a volatile stock — it can drop fast. Don't put more than the recommended amount into this one.`;
+
+  // Beta volatility
+  if (stock.beta >= 1.3) {
+    risks.push(`Beta of ${stock.beta.toFixed(1)} means higher volatility than the market — expect larger swings in both directions.`);
   }
-  if (stock.volumeRatio < 0.7) {
-    return `Trading volume is low — fewer people are buying/selling, which means the price could swing unexpectedly.`;
+
+  // Low volume
+  if (stock.volumeRatio < 0.8) {
+    risks.push(`Below-average volume (${stock.volumeRatio.toFixed(1)}x) suggests weak conviction — thin liquidity increases slippage risk.`);
+  } else if (stock.volumeRatio > 2.5) {
+    risks.push(`Unusually high volume (${stock.volumeRatio.toFixed(1)}x average) — could indicate distribution (smart money selling into strength).`);
   }
-  return `Normal market risks apply. Always use the stop loss price — it's there to protect you if things go wrong.`;
+
+  // DeMark sell signals
+  if (stock.demark?.sellSetup9) {
+    risks.push(`TD Sequential Sell 9 setup active — this exhaustion signal warns of potential trend reversal to the downside.`);
+  }
+
+  // High IV
+  if (stock.ivPercentile !== null && stock.ivPercentile > 50) {
+    risks.push(`IV percentile at ${stock.ivPercentile}% — elevated options pricing suggests the market expects significant moves, increasing uncertainty.`);
+  }
+
+  // Weak momentum
+  if (stock.momentum !== null && stock.momentum < 0) {
+    risks.push(`Negative momentum (${stock.momentum.toFixed(1)}) — the stock is currently underperforming the broader market.`);
+  }
+
+  // Market/macro risk — always relevant
+  risks.push(`Broader market conditions, interest rate decisions, and macroeconomic data can override individual stock fundamentals at any time.`);
+
+  // Position sizing risk — always relevant
+  if (stock.tradeSetup && stock.tradeSetup.riskReward < 2) {
+    risks.push(`Risk-to-reward ratio of 1:${stock.tradeSetup.riskReward.toFixed(1)} is below the ideal 1:2 minimum — consider smaller position size or tighter entry.`);
+  }
+
+  return risks.slice(0, 3);
 }
 
 export function generateAdvisorSummary(stock: EnrichedStock): string {
@@ -59,7 +123,7 @@ export function generateAdvisorSummary(stock: EnrichedStock): string {
 
   if (score >= 75 && setup) {
     const gain = ((setup.target - stock.price) / stock.price * 100).toFixed(0);
-    return `Strong opportunity. The analysis shows ${stock.ticker} could gain ~${gain}% with a ${setup.riskReward.toFixed(1)}:1 reward-to-risk ratio. Consider buying around ${stock.price.toFixed(2)} with a stop loss at ${setup.stopLoss.toFixed(2)}.`;
+    return `Strong opportunity. The analysis shows ${stock.ticker} could gain ~${gain}% with a 1:${setup.riskReward.toFixed(1)} risk-to-reward ratio. Consider buying around ${stock.price.toFixed(2)} with a stop loss at ${setup.stopLoss.toFixed(2)}.`;
   }
   if (score >= 60 && setup) {
     return `Good opportunity. ${stock.ticker} scores ${score}/100. The upside potential justifies the risk. Consider a smaller position size.`;

@@ -113,7 +113,7 @@ export function getUpcomingCatalysts(
   };
 }
 
-// Scoring: combines earnings + macro catalysts (max 10 pts)
+// Scoring: combines earnings + macro catalysts (max 7 pts)
 export function scoreCatalysts(
   daysToEarnings: number | null,
   earningsDate: string | null,
@@ -123,18 +123,18 @@ export function scoreCatalysts(
   let points = 0;
   const reasons: string[] = [];
 
-  // Earnings scoring (0-7 pts)
+  // Earnings scoring (0-3 pts)
   if (catalysts.hasEarnings && catalysts.daysToEarnings !== null) {
-    if (catalysts.daysToEarnings <= 7) { points += 7; reasons.push(`Earnings in ${catalysts.daysToEarnings}d`); }
-    else if (catalysts.daysToEarnings <= 14) { points += 5; reasons.push(`Earnings in ${catalysts.daysToEarnings}d`); }
+    if (catalysts.daysToEarnings <= 7) { points += 3; reasons.push(`Earnings in ${catalysts.daysToEarnings}d`); }
+    else if (catalysts.daysToEarnings <= 14) { points += 2; reasons.push(`Earnings in ${catalysts.daysToEarnings}d`); }
   }
 
-  // Macro catalyst bonus (0-3 pts)
+  // Macro catalyst bonus (0-2 pts)
   const highImpactMacro = catalysts.upcoming.filter((e) => e.type !== "EARNINGS" && e.impact === "high");
-  if (highImpactMacro.length >= 2) { points += 3; reasons.push(`${highImpactMacro.length} macro events ahead`); }
-  else if (highImpactMacro.length === 1) { points += 2; reasons.push(`${highImpactMacro[0].type} in ${highImpactMacro[0].daysAway}d`); }
+  if (highImpactMacro.length >= 2) { points += 2; reasons.push(`${highImpactMacro.length} macro events ahead`); }
+  else if (highImpactMacro.length === 1) { points += 1; reasons.push(`${highImpactMacro[0].type} in ${highImpactMacro[0].daysAway}d`); }
 
-  points = Math.min(points, 10);
+  points = Math.min(points, 7);
 
   return {
     points,

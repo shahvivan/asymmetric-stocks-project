@@ -394,10 +394,14 @@ function ScreenerDataLoader({ setDataSource, refreshCounter, setIsRefreshing }: 
   }, [preliminaryStocks]);
 
   const enrichedStocks = useMemo(() => {
+    // Extract market regime from first enrichment result (same for all tickers)
+    const firstEnrichment = Object.values(enrichMap)[0];
+    const marketRegime = firstEnrichment?.marketRegime;
+
     return preliminaryStocks.map((stock) => {
       const e = enrichMap[stock.ticker];
       if (!e) return stock;
-      return calculateFullScore(stock, e);
+      return calculateFullScore(stock, e, undefined, marketRegime);
     });
   }, [preliminaryStocks, enrichMap]);
 

@@ -18,6 +18,8 @@ export interface StockQuote {
   volumeRatio: number;
 }
 
+export type MarketRegime = "bull" | "neutral" | "bear";
+
 export interface EnrichmentData {
   rsi: number;
   momentum: number;
@@ -33,6 +35,9 @@ export interface EnrichmentData {
   volumeProfile: VolumeProfileSummary | null;
   expectedMove: ExpectedMoveSummary | null;
   hv30: number | null;
+  // Phase 2: market regime
+  marketRegime?: MarketRegime;
+  vixLevel?: number;
 }
 
 export interface DemarkSummary {
@@ -75,6 +80,8 @@ export interface EnrichedStock extends StockQuote {
   demark: DemarkSummary | null;
   expectedMove: ExpectedMoveSummary | null;
   volumeProfile: VolumeProfileSummary | null;
+  // Phase 2: market context
+  marketRegime?: MarketRegime;
 }
 
 // ===== Scoring =====
@@ -111,6 +118,7 @@ export interface TradeSetup {
   kellySize: number;
   kellyPercent: number;
   dynamicStopReason?: string;
+  earningsWarning?: string;
 }
 
 // ===== Positions & Trades =====

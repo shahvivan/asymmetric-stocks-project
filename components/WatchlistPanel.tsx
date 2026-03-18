@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/app/providers";
 import { formatPrice, formatPercent } from "@/lib/utils";
 
@@ -8,6 +9,20 @@ interface WatchlistPanelProps {
   activeTicker: string;
   onSelect: (ticker: string, name: string) => void;
 }
+
+const listVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.03 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -8 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
+  },
+};
 
 export default function WatchlistPanel({ activeTicker, onSelect }: WatchlistPanelProps) {
   const { screenerData, watchlist, isRefreshing, dataSource } = useApp();
@@ -64,23 +79,32 @@ export default function WatchlistPanel({ activeTicker, onSelect }: WatchlistPane
       </div>
 
       {/* Loading banner */}
-      {isRefreshing && (
-        <div style={{
-          padding: "6px 12px",
-          background: "var(--blue-bg, rgba(79,142,247,0.1))",
-          borderBottom: "1px solid var(--bd)",
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          fontSize: "11px",
-          color: "var(--blue)",
-        }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 12, height: 12, animation: "spin 1s linear infinite", flexShrink: 0 }}>
-            <path d="M21 2v6h-6M3 12a9 9 0 0115.5-6.36L21 8M3 22v-6h6M21 12a9 9 0 01-15.5 6.36L3 16" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Fetching live prices...
-        </div>
-      )}
+      <AnimatePresence>
+        {isRefreshing && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            className="flex items-center gap-2 border-b border-[var(--bd)] bg-[var(--blue-bg,rgba(79,142,247,0.1))] p-3 text-[11px] text-[var(--blue)]"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              className="h-3 w-3 shrink-0 animate-spin"
+            >
+              <path
+                d="M21 2v6h-6M3 12a9 9 0 0115.5-6.36L21 8M3 22v-6h6M21 12a9 9 0 01-15.5 6.36L3 16"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Fetching live prices...
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="watchlist-scroll">
         {items.length === 0 ? (
@@ -109,32 +133,44 @@ export default function WatchlistPanel({ activeTicker, onSelect }: WatchlistPane
             )}
           </div>
         ) : (
-          items.map((stock) => (
-            <div
-              key={stock.ticker}
-              id={`wl-${stock.ticker}`}
-              className={`watchlist-item ${activeTicker === stock.ticker ? "active" : ""}`}
-              onClick={() => onSelect(stock.ticker, stock.name)}
-            >
-              <div className="wi-left">
-                <span className="wi-ticker">{stock.ticker}</span>
-                <span className="wi-name">{stock.name}</span>
-              </div>
-              <div className="wi-right">
-                {stock.price > 0 ? (
-                  <>
-                    <span className="wi-price">{formatPrice(stock.price)}</span>
-                    <span className={`wi-change ${stock.changePercent >= 0 ? "pos" : "neg"}`}>
-                      {stock.changePercent >= 0 ? "+" : ""}
-                      {formatPercent(stock.changePercent)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="wi-price" style={{ color: "var(--t-ghost)" }}>---</span>
-                )}
-              </div>
-            </div>
-          ))
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={listVariants}
+          >
+            {items.map((stock) => (
+              <motion.div
+                key={stock.ticker}
+                variants={itemVariants}
+                whileHover={{ x: 2 }}
+                transition={{ duration: 0.15 }}
+              >
+                <div
+                  id={`wl-${stock.ticker}`}
+                  className={`watchlist-item ${activeTicker === stock.ticker ? "active" : ""}`}
+                  onClick={() => onSelect(stock.ticker, stock.name)}
+                >
+                  <div className="wi-left">
+                    <span className="wi-ticker">{stock.ticker}</span>
+                    <span className="wi-name">{stock.name}</span>
+                  </div>
+                  <div className="wi-right">
+                    {stock.price > 0 ? (
+                      <>
+                        <span className="wi-price">{formatPrice(stock.price)}</span>
+                        <span className={`wi-change ${stock.changePercent >= 0 ? "pos" : "neg"}`}>
+                          {stock.changePercent >= 0 ? "+" : ""}
+                          {formatPercent(stock.changePercent)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="wi-price" style={{ color: "var(--t-ghost)" }}>---</span>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
         )}
       </div>
     </div>

@@ -13,9 +13,76 @@ import {
 import { calculateDemark } from "@/lib/demark";
 import { calculateVolumeProfile } from "@/lib/volume-profile";
 
+import { MarketRegime } from "@/lib/types";
+
 // Module-level SPY cache (shared across requests, 15-min TTL)
 let spyCache: { return20d: number; timestamp: number } | null = null;
 const SPY_CACHE_TTL = 15 * 60 * 1000;
+
+// Module-level market regime cache (15-min TTL, same as SPY)
+let regimeCache: { regime: MarketRegime; vixLevel: number; timestamp: number } | null = null;
+
+async function assessMarketRegime(): Promise<{ regime: MarketRegime; vixLevel: number }> {
+  if (regimeCache && Date.now() - regimeCache.timestamp < SPY_CACHE_TTL) {
+    return { regime: regimeCache.regime, vixLevel: regimeCache.vixLevel };
+  }
+  try {
+    // Fetch VIX
+    const vixRes = await fetch(
+      "https://query1.finance.yahoo.com/v8/finance/chart/%5EVIX?interval=1d&range=1d",
+      {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+    let vixLevel = 20; // default
+    if (vixRes.ok) {
+      const vixData = await vixRes.json();
+      const vixCloses = vixData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close as number[] | undefined;
+      if (vixCloses && vixCloses.length > 0) {
+        const lastVix = vixCloses.filter((c: number | null) => c != null) as number[];
+        if (lastVix.length > 0) vixLevel = lastVix[lastVix.length - 1];
+      }
+    }
+
+    // Fetch SPY for trend (price vs 50-day SMA)
+    const spyRes = await fetch(
+      "https://query1.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=3mo",
+      {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        signal: AbortSignal.timeout(10000),
+      }
+    );
+    let spyAbove50SMA = true; // default bullish
+    if (spyRes.ok) {
+      const spyData = await spyRes.json();
+      const spyCloses = spyData?.chart?.result?.[0]?.indicators?.quote?.[0]?.close as number[] | undefined;
+      if (spyCloses) {
+        const closes = spyCloses.filter((c: number | null) => c != null) as number[];
+        if (closes.length >= 50) {
+          const sma50 = closes.slice(-50).reduce((a, b) => a + b, 0) / 50;
+          const currentSpy = closes[closes.length - 1];
+          spyAbove50SMA = currentSpy > sma50;
+        }
+      }
+    }
+
+    // Regime classification
+    let regime: MarketRegime;
+    if (vixLevel > 30 || (!spyAbove50SMA && vixLevel > 25)) {
+      regime = "bear";
+    } else if (!spyAbove50SMA || vixLevel > 25) {
+      regime = "neutral";
+    } else {
+      regime = "bull";
+    }
+
+    regimeCache = { regime, vixLevel, timestamp: Date.now() };
+    return { regime, vixLevel };
+  } catch {
+    return { regime: "neutral", vixLevel: 20 }; // safe default
+  }
+}
 
 async function getSpyReturn20d(): Promise<number | null> {
   if (spyCache && Date.now() - spyCache.timestamp < SPY_CACHE_TTL) {
@@ -53,8 +120,11 @@ export async function GET(request: NextRequest) {
   const tickers = tickersParam.split(",").slice(0, 25);
 
   try {
-    // Fetch SPY data once for relative strength calculation
-    const spyReturn20d = await getSpyReturn20d();
+    // Fetch SPY data and market regime once (both cached with 15-min TTL)
+    const [spyReturn20d, regimeData] = await Promise.all([
+      getSpyReturn20d(),
+      assessMarketRegime(),
+    ]);
 
     const results: Record<string, EnrichmentData> = {};
 
@@ -62,7 +132,11 @@ export async function GET(request: NextRequest) {
     const batchResults = await Promise.all(tickers.map((t) => enrichTicker(t, spyReturn20d)));
     tickers.forEach((ticker, idx) => {
       if (batchResults[idx]) {
-        results[ticker] = batchResults[idx]!;
+        results[ticker] = {
+          ...batchResults[idx]!,
+          marketRegime: regimeData.regime,
+          vixLevel: regimeData.vixLevel,
+        };
       }
     });
 

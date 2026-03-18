@@ -1,4 +1,4 @@
-import { StockQuote, EnrichedStock, EnrichmentData, ScoreBreakdown, ScoreComponent, TradeSetup } from "./types";
+import { StockQuote, EnrichedStock, EnrichmentData, ScoreBreakdown, ScoreComponent, TradeSetup, MarketRegime } from "./types";
 import { KELLY_FRACTIONS, SCORE_STRONG_BUY, SCORE_BUY } from "./constants";
 import { clamp } from "./utils";
 import { scoreDemarkSignal } from "./demark";
@@ -18,10 +18,10 @@ function scoreBreakoutProximity(pctFromHigh: number): ScoreComponent {
 
 function scoreVolumeRatio(volumeRatio: number): ScoreComponent {
   let points = 0;
-  if (volumeRatio >= 2.0) points = 15;
+  if (volumeRatio >= 2.0) points = 16;
   else if (volumeRatio >= 1.5) points = 12;
   else if (volumeRatio >= 1.2) points = 8;
-  else if (volumeRatio >= 0.8) points = 3;
+  else if (volumeRatio >= 1.0) points = 4;
   return { points, reason: `Volume ${volumeRatio.toFixed(1)}x average` };
 }
 
@@ -37,8 +37,8 @@ export function calculatePreliminaryScore(q: StockQuote): { score: number; break
 
 // ===== Full Score (with enrichment data, up to 100 pts) =====
 // Rebalanced weights:
-// Breakout: 12, Volume: 15, Trend: 12, RSI: 8, Momentum: 12,
-// RelStr: 8, Catalysts: 10, IV: 5, DeMark: 10, VolProfile: 8 = 100
+// Breakout: 12, Volume: 16, Trend: 12, RSI: 8, Momentum: 12,
+// RelStr: 10, Catalysts: 7, IV: 5, DeMark: 10, VolProfile: 8 = 100
 
 function scoreTrendPosition(price: number, sma20: number | null, sma50: number | null): ScoreComponent {
   if (sma20 === null || sma50 === null) {
@@ -63,8 +63,10 @@ function scoreTrendPosition(price: number, sma20: number | null, sma50: number |
 function scoreRSIMomentumZone(rsi: number): ScoreComponent {
   let points = 0;
   if (rsi >= 55 && rsi <= 65) points = 8;
-  else if (rsi >= 50 && rsi <= 70) points = 6;
-  else if (rsi >= 70 && rsi <= 80) points = 4;
+  else if (rsi >= 50 && rsi < 55) points = 6;
+  else if (rsi > 65 && rsi <= 70) points = 6;
+  else if (rsi > 70 && rsi <= 80) points = 2;
+  else if (rsi > 80) points = 0;
   else if (rsi >= 40 && rsi < 50) points = 3;
   else points = 0;
   return { points, reason: `RSI ${rsi.toFixed(1)} (${getRSILabel(rsi)})` };
@@ -83,11 +85,11 @@ function getRSILabel(rsi: number): string {
 function scoreMomentum(momentum: number | null): ScoreComponent {
   if (momentum === null) return { points: 0, reason: "No momentum data" };
   let points = 0;
-  if (momentum >= 2.0) points = 12;
-  else if (momentum >= 1.5) points = 9;
-  else if (momentum >= 1.2) points = 6;
-  else if (momentum >= 1.0) points = 3;
-  const label = momentum >= 1.0 ? "accelerating" : "decelerating";
+  if (momentum > 3.0) points = 12;
+  else if (momentum > 1.5) points = 9;
+  else if (momentum > 0.5) points = 6;
+  else if (momentum > 0.0) points = 3;
+  const label = momentum > 0 ? "accelerating" : "decelerating";
   return { points, reason: `Momentum ${momentum.toFixed(2)} (${label})` };
 }
 
@@ -97,9 +99,10 @@ function scoreRelativeStrength(return20d: number | null, spyReturn20d: number | 
   }
   const outperformance = return20d - spyReturn20d;
   let points = 0;
-  if (outperformance >= 10) points = 8;
-  else if (outperformance >= 5) points = 6;
-  else if (outperformance >= 0) points = 3;
+  if (outperformance >= 10) points = 10;
+  else if (outperformance >= 5) points = 7;
+  else if (outperformance >= 2) points = 4;
+  else if (outperformance >= 0) points = 2;
   return { points, reason: `${return20d > 0 ? "+" : ""}${return20d.toFixed(1)}% vs SPY ${spyReturn20d > 0 ? "+" : ""}${spyReturn20d.toFixed(1)}%` };
 }
 
@@ -121,8 +124,8 @@ function evaluateConfluence(
 ): { count: number; signals: string[] } {
   const signals: string[] = [];
 
-  // 1. Momentum: RSI 40-65 AND momentum > 1.0
-  if (enrichment.rsi >= 40 && enrichment.rsi <= 65 && (enrichment.momentum ?? 0) > 1.0) {
+  // 1. Momentum: RSI 40-65 AND momentum > 0.5
+  if (enrichment.rsi >= 40 && enrichment.rsi <= 65 && (enrichment.momentum ?? 0) > 0.5) {
     signals.push("Momentum");
   }
 
@@ -168,7 +171,8 @@ function evaluateConfluence(
 export function calculateFullScore(
   stock: EnrichedStock,
   enrichment: EnrichmentData,
-  accountSize?: number
+  accountSize?: number,
+  marketRegime?: MarketRegime
 ): EnrichedStock {
   const breakout = scoreBreakoutProximity(stock.pctFromHigh);
   const volume = scoreVolumeRatio(stock.volumeRatio);
@@ -192,7 +196,7 @@ export function calculateFullScore(
     enrichment.earningsDate,
   );
 
-  const score = clamp(
+  let score = clamp(
     breakout.points + volume.points + trend.points + rsi.points +
     momentum.points + relativeStrength.points + catalystScore.points + iv.points +
     demarkScore.points + vpScore.points,
@@ -208,13 +212,30 @@ export function calculateFullScore(
     volumeProfile: vpScore,
   };
 
+  // Market regime adjustment
+  let buyConfluenceMin = 3;
+  let strongBuyConfluenceMin = 4;
+  if (marketRegime === "bear") {
+    buyConfluenceMin = 4;
+    strongBuyConfluenceMin = 5;
+    // Reduce breakout score in bear markets (breakouts fail)
+    if (breakdown.breakout) {
+      const reduction = Math.floor(breakdown.breakout.points / 2);
+      score -= reduction;
+      breakdown.breakout = {
+        points: breakdown.breakout.points - reduction,
+        reason: breakdown.breakout.reason + " (reduced: bear market)"
+      };
+    }
+  }
+
   // Confluence evaluation
   const confluence = evaluateConfluence(stock, enrichment, breakdown);
 
   // Signal assignment with confluence gate
   let signal: EnrichedStock["signal"];
-  if (score >= SCORE_STRONG_BUY && confluence.count >= 4) signal = "STRONG BUY";
-  else if (score >= SCORE_BUY && confluence.count >= 3) signal = "BUY";
+  if (score >= SCORE_STRONG_BUY && confluence.count >= strongBuyConfluenceMin) signal = "STRONG BUY";
+  else if (score >= SCORE_BUY && confluence.count >= buyConfluenceMin) signal = "BUY";
   else if (score >= SCORE_BUY) signal = "WATCH"; // score qualifies but not enough confluence
   else signal = "WATCH";
 
@@ -236,10 +257,17 @@ export function calculateFullScore(
     demark: enrichment.demark,
     expectedMove: enrichment.expectedMove,
     volumeProfile: enrichment.volumeProfile,
+    marketRegime,
   };
 }
 
-// ===== Dynamic TP/SL based on HV =====
+// ===== ATR-Based Trade Setup (Professional Standard) =====
+//
+// Uses ATR (Average True Range) for stop loss and target placement.
+// ATR approximated from 30-day historical volatility: dailyATR ≈ price × HV30 / √252
+// Stop: 2× ATR below entry (standard swing trade risk)
+// Target: 3× ATR above entry (gives minimum 1:1.5 R:R)
+// If natural R:R < 1.5, the trade setup is not generated (too risky to recommend)
 
 function calculateTradeSetup(
   stock: StockQuote,
@@ -251,82 +279,91 @@ function calculateTradeSetup(
   if (stock.price <= 0) return null;
 
   const entry = stock.price;
-  const entryLow = Math.round(entry * 0.98 * 100) / 100;
-  const entryHigh = Math.round(entry * 1.02 * 100) / 100;
 
-  // Dynamic stop loss based on HV percentile
-  const hvPct = enrichment.ivPercentile; // This is actually HV percentile
-  const hv30 = enrichment.hv30 ?? 0.3;
-  let stopPercent: number;
-  let stopReason: string;
+  // Calculate daily ATR from HV30 (annualized vol → daily vol)
+  const hv30 = enrichment.hv30 ?? 0.3; // default 30% annualized vol
+  const dailyVol = hv30 / Math.sqrt(252); // daily volatility
+  const atr = entry * dailyVol; // ATR in dollar terms
 
-  if (hvPct > 70) {
-    // High volatility: wider stop (10-12%)
-    stopPercent = clamp(hv30 * 0.35, 0.10, 0.15);
-    stopReason = `Wide stop (HV%ile ${hvPct}, high vol)`;
-  } else if (hvPct < 30) {
-    // Low volatility: tighter stop (5-6%)
-    stopPercent = clamp(hv30 * 0.25, 0.04, 0.06);
-    stopReason = `Tight stop (HV%ile ${hvPct}, low vol)`;
-  } else {
-    // Normal: moderate stop (7-9%)
-    stopPercent = clamp(hv30 * 0.30, 0.06, 0.10);
-    stopReason = `Moderate stop (HV%ile ${hvPct})`;
+  // Entry zone: ±1% from current price (realistic intraday fill)
+  const entryLow = Math.round(entry * 0.99 * 100) / 100;
+  const entryHigh = Math.round(entry * 1.01 * 100) / 100;
+
+  // Stop loss: 2× ATR below entry (professional standard for swing trades)
+  // Clamped between 3% and 12% of entry to avoid extremes
+  const stopDistance = clamp(atr * 2, entry * 0.03, entry * 0.12);
+  let stopLoss = Math.round((entry - stopDistance) * 100) / 100;
+  let stopReason = `ATR-based stop (2× ATR = $${stopDistance.toFixed(2)})`;
+
+  // Don't set stop below 52-week low
+  if (stock.low52w > 0 && stock.low52w < entry) {
+    const low52Floor = Math.round(stock.low52w * 0.98 * 100) / 100;
+    if (stopLoss < low52Floor) {
+      stopLoss = low52Floor;
+      stopReason += " | Bounded by 52W low";
+    }
   }
 
-  const stopPct = Math.round(entry * (1 - stopPercent) * 100) / 100;
-  const low52 = stock.low52w > 0 && stock.low52w < entry ? stock.low52w : entry * 0.85;
-  const stopLow = Math.round(low52 * 0.98 * 100) / 100;
-  let stopLoss = Math.max(stopPct, stopLow);
-
+  // Safety: stop must be below entry
   if (stopLoss >= entry) {
-    stopLoss = Math.round(entry * (1 - 0.08) * 100) / 100;
+    stopLoss = Math.round(entry * 0.92 * 100) / 100;
     stopReason = "Fallback 8% stop";
   }
 
   const risk = entry - stopLoss;
-  if (risk <= entry * 0.01) {
-    return {
-      entryZone: [entryLow, entryHigh],
-      target: Math.round(entry * 1.15 * 100) / 100,
-      stopLoss: Math.round(entry * 0.92 * 100) / 100,
-      riskReward: 1.9,
-      holdWindow: [stock.beta >= 1.5 ? 5 : 7, stock.beta >= 1.5 ? 15 : 26],
-      kellySize: Math.round((accountSize || 1500) * 0.1 * 100) / 100,
-      kellyPercent: 10,
-      dynamicStopReason: "Minimum risk fallback",
-    };
-  }
 
-  // Dynamic target: max(3x risk, 1.5x expected move)
-  const rawTarget = entry + risk * 3;
+  // Target: 3× ATR above entry (gives 1:1.5 R:R with 2× ATR stop)
+  // For higher-scoring stocks, use wider target multiplier
+  const targetMultiplier = score >= 75 ? 4 : score >= 65 ? 3.5 : 3;
+  const atrTarget = entry + atr * targetMultiplier;
+
+  // Also consider expected move if available
   const emTarget = enrichment.expectedMove
-    ? entry + enrichment.expectedMove.expectedMoveAbsolute * 1.5
-    : rawTarget;
-  const bestTarget = Math.max(rawTarget, emTarget);
+    ? entry + enrichment.expectedMove.expectedMoveAbsolute * 1.2
+    : atrTarget;
 
-  const high52 = stock.high52w > 0 && stock.high52w >= entry * 0.5 ? stock.high52w : entry * 1.5;
-  const targetCap = Math.round(high52 * 1.05 * 100) / 100;
-  let target = Math.round(Math.min(bestTarget, targetCap) * 100) / 100;
+  // Use whichever target is more conservative (realistic)
+  let target = Math.round(Math.min(atrTarget, emTarget) * 100) / 100;
 
+  // Cap at 52-week high + 5% (realistic resistance ceiling)
+  if (stock.high52w > 0 && stock.high52w >= entry * 0.5) {
+    const cap = Math.round(stock.high52w * 1.05 * 100) / 100;
+    if (target > cap) {
+      target = cap;
+      stopReason += " | Target capped at 52W high";
+    }
+  }
+
+  // Target must be above entry
   if (target <= entry) {
-    target = Math.round(entry * 1.10 * 100) / 100;
+    target = Math.round((entry + atr * 2) * 100) / 100;
   }
 
-  // Flag ambitious targets
-  if (enrichment.expectedMove && target > entry + enrichment.expectedMove.expectedMoveAbsolute * 2) {
-    stopReason += " | Target beyond 2x expected move";
+  // Calculate actual R:R
+  const reward = target - entry;
+  const riskReward = risk > 0 ? Math.round((reward / risk) * 10) / 10 : 0;
+
+  // If R:R < 1.5, this is not a trade worth recommending — return null
+  // Professional traders require minimum 1:1.5 for swing trades
+  if (riskReward < 1.5) {
+    return null;
   }
 
-  const riskReward = risk > 0 ? Math.round(((target - entry) / risk) * 10) / 10 : 0;
+  // Hold window based on volatility
+  const holdMin = stock.beta >= 1.5 ? 3 : 5;
+  const holdMax = stock.beta >= 1.5 ? 10 : 20;
 
-  const holdMin = stock.beta >= 1.5 ? 5 : 7;
-  const holdMax = stock.beta >= 1.5 ? 15 : 26;
-
+  // Position sizing via Kelly
   const kellyFraction = KELLY_FRACTIONS.moderate;
   const positionPct = clamp(kellyFraction * (score / 100), 0.05, 0.35);
   const acctSize = accountSize || 1500;
   const kellySize = Math.round(acctSize * positionPct * 100) / 100;
+
+  // Earnings warning
+  let earningsWarning: string | undefined;
+  if (enrichment.daysToEarnings !== null && enrichment.daysToEarnings >= 0 && enrichment.daysToEarnings <= 7) {
+    earningsWarning = `Earnings in ${enrichment.daysToEarnings} day${enrichment.daysToEarnings !== 1 ? 's' : ''} — consider exiting before or sizing down`;
+  }
 
   return {
     entryZone: [entryLow, entryHigh],
@@ -337,5 +374,6 @@ function calculateTradeSetup(
     kellySize,
     kellyPercent: Math.round(positionPct * 100),
     dynamicStopReason: stopReason,
+    earningsWarning,
   };
 }

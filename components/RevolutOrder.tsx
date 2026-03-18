@@ -24,7 +24,7 @@ export default function RevolutOrder({ stock, onClose }: RevolutOrderProps) {
     `Stop Loss: ${formatPrice(setup.stopLoss)}`,
     `Take Profit: ${formatPrice(setup.target)}`,
     `Total Cost: ~${formatPrice(totalCost)}`,
-    `R:R: ${setup.riskReward.toFixed(1)}:1`,
+    `Risk:Reward: 1:${setup.riskReward.toFixed(1)}`,
     `Hold: ${setup.holdWindow[0]}–${setup.holdWindow[1]} days`,
   ].join("\n");
 

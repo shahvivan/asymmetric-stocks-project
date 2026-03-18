@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { motion } from "framer-motion";
 import { useApp } from "@/app/providers";
 import { FinnhubNewsArticle } from "@/lib/types";
 import { getRelativeTime } from "@/lib/utils";
@@ -46,10 +47,24 @@ export default function NewsFeed({ ticker }: NewsFeedProps) {
   return (
     <div className="bg-surface border border-border rounded-lg p-3">
       <div className="text-sm font-bold text-white mb-2">News</div>
-      <div className="space-y-2 max-h-64 overflow-y-auto">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: { transition: { staggerChildren: 0.04 } },
+        }}
+        className="space-y-2 max-h-64 overflow-y-auto"
+      >
         {articles.map((article) => (
-          <a
+          <motion.a
             key={article.id}
+            variants={{
+              hidden: { opacity: 0, y: 6 },
+              visible: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+            }}
+            whileHover={{ x: 2 }}
+            transition={{ duration: 0.15 }}
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
@@ -64,9 +79,9 @@ export default function NewsFeed({ ticker }: NewsFeedProps) {
                 {getRelativeTime(article.datetime * 1000)}
               </span>
             </div>
-          </a>
+          </motion.a>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }
