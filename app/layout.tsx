@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import { AppProvider } from "./providers";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
       >
         <AppProvider>
           {children}
+          <Analytics />
         </AppProvider>
       </body>
     </html>
